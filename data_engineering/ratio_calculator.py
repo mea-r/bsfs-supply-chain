@@ -74,14 +74,22 @@ def compute_altman_z_score(row: pd.Series, weights: dict) -> float:
         x1 = working_capital / total_assets
 
         retained_earnings = row.get("retained_earnings", float("nan"))
-        x2 = retained_earnings / total_assets if not pd.isna(retained_earnings) else float("nan")
+        x2 = (
+            retained_earnings / total_assets
+            if not pd.isna(retained_earnings)
+            else float("nan")
+        )
 
         ebit = row.get("ebit", float("nan"))
         x3 = ebit / total_assets if not pd.isna(ebit) else float("nan")
 
         market_cap = row.get("market_cap", float("nan"))
         total_liabilities = row.get("total_liabilities", float("nan"))
-        if not pd.isna(market_cap) and not pd.isna(total_liabilities) and total_liabilities != 0:
+        if (
+            not pd.isna(market_cap)
+            and not pd.isna(total_liabilities)
+            and total_liabilities != 0
+        ):
             x4 = market_cap / total_liabilities
         else:
             x4 = float("nan")
@@ -90,7 +98,13 @@ def compute_altman_z_score(row: pd.Series, weights: dict) -> float:
         x5 = revenue / total_assets if not pd.isna(revenue) else float("nan")
 
         components = [x1, x2, x3, x4, x5]
-        coefs = [weights["w1"], weights["w2"], weights["w3"], weights["w4"], weights["w5"]]
+        coefs = [
+            weights["w1"],
+            weights["w2"],
+            weights["w3"],
+            weights["w4"],
+            weights["w5"],
+        ]
 
         # If more than 2 components are missing, Z-score is unreliable
         missing = sum(1 for c in components if pd.isna(c))
@@ -108,7 +122,9 @@ def compute_altman_z_score(row: pd.Series, weights: dict) -> float:
         return float("nan")
 
 
-def classify_credit_zone(z_score: float, safe_threshold: float, grey_threshold: float) -> str:
+def classify_credit_zone(
+    z_score: float, safe_threshold: float, grey_threshold: float
+) -> str:
     """
     Map Altman Z-Score to Altman (1968) credit zone classification.
 
@@ -242,13 +258,13 @@ def compute_ratios(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     df["z_x5"] = df["revenue"] / total_assets
 
     # ---- Altman Z-Score ----
-    df["z_score"] = df.apply(
-        lambda r: compute_altman_z_score(r, z_weights), axis=1
-    )
+    df["z_score"] = df.apply(lambda r: compute_altman_z_score(r, z_weights), axis=1)
 
     # ---- Credit Zone Classification ----
     df["credit_zone"] = df["z_score"].apply(
-        lambda z: classify_credit_zone(z, zones["safe_threshold"], zones["grey_threshold"])
+        lambda z: classify_credit_zone(
+            z, zones["safe_threshold"], zones["grey_threshold"]
+        )
     )
 
     return df

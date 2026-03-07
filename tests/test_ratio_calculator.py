@@ -10,14 +10,14 @@ Economic ground-truth checks:
 
 import sys
 from pathlib import Path
+
 import pytest
 import pandas as pd
-import numpy as np
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
-from data_engineering.ratio_calculator import (
+from data_engineering.ratio_calculator import (  # noqa: E402
     compute_altman_z_score,
     classify_credit_zone,
     compute_ratios,
@@ -39,8 +39,8 @@ ZONES = TEST_CONFIG["ratios"]["credit_zones"]
 # Z-Score computation tests
 # ------------------------------------------------------------------
 
-class TestAltmanZScore:
 
+class TestAltmanZScore:
     def _make_row(self, **kwargs):
         """Helper: create a pd.Series with financial data."""
         defaults = {
@@ -60,13 +60,13 @@ class TestAltmanZScore:
         """Z-score must match manual calculation of Altman formula."""
         row = self._make_row()
         ta = 1_000_000
-        x1 = (500_000 - 300_000) / ta   # 0.2
-        x2 = 200_000 / ta               # 0.2
-        x3 = 100_000 / ta               # 0.1
-        x4 = 800_000 / 600_000          # 1.333...
-        x5 = 1_200_000 / ta             # 1.2
+        x1 = (500_000 - 300_000) / ta  # 0.2
+        x2 = 200_000 / ta  # 0.2
+        x3 = 100_000 / ta  # 0.1
+        x4 = 800_000 / 600_000  # 1.333...
+        x5 = 1_200_000 / ta  # 1.2
 
-        expected = (1.2 * x1 + 1.4 * x2 + 3.3 * x3 + 0.6 * x4 + 1.0 * x5)
+        expected = 1.2 * x1 + 1.4 * x2 + 3.3 * x3 + 0.6 * x4 + 1.0 * x5
         result = compute_altman_z_score(row, Z_WEIGHTS)
         assert result == pytest.approx(expected, rel=1e-3)
 
@@ -74,13 +74,13 @@ class TestAltmanZScore:
         """A financially healthy firm should have Z > 2.99 (safe zone)."""
         # Simulate a healthy, well-capitalized firm
         row = self._make_row(
-            current_assets=800_000,    # high liquidity
+            current_assets=800_000,  # high liquidity
             current_liabilities=200_000,
-            retained_earnings=500_000, # strong accumulated profitability
-            ebit=300_000,              # high operating margin
-            market_cap=3_000_000,      # market well above liabilities
+            retained_earnings=500_000,  # strong accumulated profitability
+            ebit=300_000,  # high operating margin
+            market_cap=3_000_000,  # market well above liabilities
             total_liabilities=400_000,
-            revenue=2_000_000,         # high revenue relative to assets
+            revenue=2_000_000,  # high revenue relative to assets
         )
         z = compute_altman_z_score(row, Z_WEIGHTS)
         assert z > 2.99, f"Healthy firm should be in safe zone, got Z={z:.2f}"
@@ -88,13 +88,13 @@ class TestAltmanZScore:
     def test_distress_zone_firm(self):
         """A financially stressed firm should have Z ≤ 1.81 (distress zone)."""
         row = self._make_row(
-            current_assets=100_000,    # low liquidity
+            current_assets=100_000,  # low liquidity
             current_liabilities=600_000,  # current liabilities exceed current assets!
-            retained_earnings=-400_000,   # accumulated losses
-            ebit=-50_000,              # operating losses
-            market_cap=100_000,        # market has little confidence
+            retained_earnings=-400_000,  # accumulated losses
+            ebit=-50_000,  # operating losses
+            market_cap=100_000,  # market has little confidence
             total_liabilities=900_000,
-            revenue=300_000,           # low revenue relative to assets
+            revenue=300_000,  # low revenue relative to assets
         )
         z = compute_altman_z_score(row, Z_WEIGHTS)
         assert z <= 1.81, f"Distressed firm should be in distress zone, got Z={z:.2f}"
@@ -113,16 +113,18 @@ class TestAltmanZScore:
 
     def test_all_components_nan_returns_nan(self):
         """When all components are NaN, Z-score must be NaN."""
-        row = pd.Series({
-            "total_assets": 1_000_000,
-            "current_assets": float("nan"),
-            "current_liabilities": float("nan"),
-            "retained_earnings": float("nan"),
-            "ebit": float("nan"),
-            "market_cap": float("nan"),
-            "total_liabilities": float("nan"),
-            "revenue": float("nan"),
-        })
+        row = pd.Series(
+            {
+                "total_assets": 1_000_000,
+                "current_assets": float("nan"),
+                "current_liabilities": float("nan"),
+                "retained_earnings": float("nan"),
+                "ebit": float("nan"),
+                "market_cap": float("nan"),
+                "total_liabilities": float("nan"),
+                "revenue": float("nan"),
+            }
+        )
         z = compute_altman_z_score(row, Z_WEIGHTS)
         assert pd.isna(z), "Z-score with no valid components should be NaN"
 
@@ -150,8 +152,8 @@ class TestAltmanZScore:
 # Credit Zone classification tests
 # ------------------------------------------------------------------
 
-class TestCreditZoneClassification:
 
+class TestCreditZoneClassification:
     def test_safe_zone(self):
         assert classify_credit_zone(3.5, 2.99, 1.81) == "safe"
         assert classify_credit_zone(2.991, 2.99, 1.81) == "safe"
@@ -159,7 +161,9 @@ class TestCreditZoneClassification:
     def test_grey_zone(self):
         assert classify_credit_zone(2.5, 2.99, 1.81) == "grey"
         assert classify_credit_zone(1.82, 2.99, 1.81) == "grey"
-        assert classify_credit_zone(2.99, 2.99, 1.81) == "grey"  # exactly 2.99 → not > 2.99
+        assert (
+            classify_credit_zone(2.99, 2.99, 1.81) == "grey"
+        )  # exactly 2.99 → not > 2.99
 
     def test_distress_zone(self):
         assert classify_credit_zone(1.0, 2.99, 1.81) == "distress"
@@ -174,31 +178,33 @@ class TestCreditZoneClassification:
 # Ratio computation tests
 # ------------------------------------------------------------------
 
-class TestComputeRatios:
 
+class TestComputeRatios:
     def _make_df(self):
         """Create a minimal synthetic dataframe for ratio testing."""
-        return pd.DataFrame([
-            {
-                "ticker": "TEST",
-                "name": "Test Co",
-                "year": 2023,
-                "total_assets": 1_000_000,
-                "current_assets": 500_000,
-                "current_liabilities": 250_000,
-                "retained_earnings": 300_000,
-                "ebit": 120_000,
-                "market_cap": 900_000,
-                "total_liabilities": 600_000,
-                "revenue": 1_500_000,
-                "interest_expense": 20_000,
-                "accounts_payable": 100_000,
-                "accounts_receivable": 150_000,
-                "cogs": 900_000,
-                "long_term_debt": 350_000,
-                "stockholders_equity": 400_000,
-            }
-        ])
+        return pd.DataFrame(
+            [
+                {
+                    "ticker": "TEST",
+                    "name": "Test Co",
+                    "year": 2023,
+                    "total_assets": 1_000_000,
+                    "current_assets": 500_000,
+                    "current_liabilities": 250_000,
+                    "retained_earnings": 300_000,
+                    "ebit": 120_000,
+                    "market_cap": 900_000,
+                    "total_liabilities": 600_000,
+                    "revenue": 1_500_000,
+                    "interest_expense": 20_000,
+                    "accounts_payable": 100_000,
+                    "accounts_receivable": 150_000,
+                    "cogs": 900_000,
+                    "long_term_debt": 350_000,
+                    "stockholders_equity": 400_000,
+                }
+            ]
+        )
 
     def test_current_ratio(self):
         df = self._make_df()
@@ -216,13 +222,17 @@ class TestComputeRatios:
         df = self._make_df()
         result = compute_ratios(df, TEST_CONFIG)
         expected = (100_000 / 900_000) * 365  # ≈ 40.6 days
-        assert result["days_payable_outstanding"].iloc[0] == pytest.approx(expected, rel=1e-3)
+        assert result["days_payable_outstanding"].iloc[0] == pytest.approx(
+            expected, rel=1e-3
+        )
 
     def test_days_sales_outstanding(self):
         df = self._make_df()
         result = compute_ratios(df, TEST_CONFIG)
         expected = (150_000 / 1_500_000) * 365  # = 36.5 days
-        assert result["days_sales_outstanding"].iloc[0] == pytest.approx(expected, rel=1e-3)
+        assert result["days_sales_outstanding"].iloc[0] == pytest.approx(
+            expected, rel=1e-3
+        )
 
     def test_debt_to_equity(self):
         df = self._make_df()

@@ -7,9 +7,9 @@ PropagationEngine state dictionaries.
 
 import math
 import pandas as pd
-import numpy as np
 import networkx as nx
 import plotly.graph_objects as go
+
 ZONE_COLORS = {
     "safe": "#2ecc71",
     "grey": "#f39c12",
@@ -68,14 +68,19 @@ def build_plotly_graph(
         else:
             edge_color = "#bdc3c7"
 
-        edge_traces.append(go.Scatter(
-            x=[x0, x1, None], y=[y0, y1, None],
-            mode="lines",
-            line=dict(width=max(1, w * config["dashboard"]["edge_weight_scale"]),
-                      color=edge_color),
-            hoverinfo="none",
-            showlegend=False,
-        ))
+        edge_traces.append(
+            go.Scatter(
+                x=[x0, x1, None],
+                y=[y0, y1, None],
+                mode="lines",
+                line=dict(
+                    width=max(1, w * config["dashboard"]["edge_weight_scale"]),
+                    color=edge_color,
+                ),
+                hoverinfo="none",
+                showlegend=False,
+            )
+        )
 
     # Node trace
     node_x, node_y = [], []
@@ -117,14 +122,16 @@ def build_plotly_graph(
         )
 
     node_trace = go.Scatter(
-        x=node_x, y=node_y,
+        x=node_x,
+        y=node_y,
         mode="markers+text",
         marker=dict(
             color=node_colors,
             size=node_sizes,
             line=dict(
-                color=["#2c3e50" if n in highlight_set else "white"
-                       for n in graph.nodes()],
+                color=[
+                    "#2c3e50" if n in highlight_set else "white" for n in graph.nodes()
+                ],
                 width=[3 if n in highlight_set else 1 for n in graph.nodes()],
             ),
             opacity=0.9,
@@ -139,13 +146,16 @@ def build_plotly_graph(
     # Legend annotations
     legend_traces = []
     for zone, color in ZONE_COLORS.items():
-        legend_traces.append(go.Scatter(
-            x=[None], y=[None],
-            mode="markers",
-            marker=dict(color=color, size=12, symbol="circle"),
-            name=zone.capitalize(),
-            showlegend=True,
-        ))
+        legend_traces.append(
+            go.Scatter(
+                x=[None],
+                y=[None],
+                mode="markers",
+                marker=dict(color=color, size=12, symbol="circle"),
+                name=zone.capitalize(),
+                showlegend=True,
+            )
+        )
 
     fig = go.Figure(
         data=edge_traces + [node_trace] + legend_traces,
@@ -160,9 +170,12 @@ def build_plotly_graph(
             paper_bgcolor="white",
             legend=dict(
                 title="Credit Zone",
-                yanchor="top", y=0.99, xanchor="left", x=0.01,
+                yanchor="top",
+                y=0.99,
+                xanchor="left",
+                x=0.01,
             ),
-        )
+        ),
     )
     return fig
 
@@ -180,14 +193,16 @@ def build_stress_heatmap(heatmap_df: pd.DataFrame) -> go.Figure:
     -------
     go.Figure
     """
-    fig = go.Figure(data=go.Heatmap(
-        z=heatmap_df.values,
-        x=heatmap_df.columns.tolist(),
-        y=heatmap_df.index.tolist(),
-        colorscale="RdYlGn_r",
-        colorbar=dict(title="Stress Intensity"),
-        hovertemplate="From: %{y}<br>To: %{x}<br>Stress: %{z:.4f}<extra></extra>",
-    ))
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=heatmap_df.values,
+            x=heatmap_df.columns.tolist(),
+            y=heatmap_df.index.tolist(),
+            colorscale="RdYlGn_r",
+            colorbar=dict(title="Stress Intensity"),
+            hovertemplate="From: %{y}<br>To: %{x}<br>Stress: %{z:.4f}<extra></extra>",
+        )
+    )
     fig.update_layout(
         title="Stress Propagation Heatmap (Supplier → Buyer)",
         xaxis_title="Buyer",
@@ -215,13 +230,30 @@ def build_z_score_timeseries(scores_df: pd.DataFrame, tickers: list) -> go.Figur
     fig = go.Figure()
 
     # Add safe/grey/distress threshold bands
-    years = sorted(scores_df["year"].unique())
-    fig.add_hrect(y0=2.99, y1=10, fillcolor="#2ecc71", opacity=0.05,
-                  annotation_text="Safe Zone", annotation_position="top right")
-    fig.add_hrect(y0=1.81, y1=2.99, fillcolor="#f39c12", opacity=0.08,
-                  annotation_text="Grey Zone", annotation_position="top right")
-    fig.add_hrect(y0=-5, y1=1.81, fillcolor="#e74c3c", opacity=0.05,
-                  annotation_text="Distress Zone", annotation_position="top right")
+    fig.add_hrect(
+        y0=2.99,
+        y1=10,
+        fillcolor="#2ecc71",
+        opacity=0.05,
+        annotation_text="Safe Zone",
+        annotation_position="top right",
+    )
+    fig.add_hrect(
+        y0=1.81,
+        y1=2.99,
+        fillcolor="#f39c12",
+        opacity=0.08,
+        annotation_text="Grey Zone",
+        annotation_position="top right",
+    )
+    fig.add_hrect(
+        y0=-5,
+        y1=1.81,
+        fillcolor="#e74c3c",
+        opacity=0.05,
+        annotation_text="Distress Zone",
+        annotation_position="top right",
+    )
     fig.add_hline(y=2.99, line_dash="dash", line_color="#2ecc71", opacity=0.6)
     fig.add_hline(y=1.81, line_dash="dash", line_color="#e74c3c", opacity=0.6)
 
@@ -230,15 +262,17 @@ def build_z_score_timeseries(scores_df: pd.DataFrame, tickers: list) -> go.Figur
         if firm_data.empty:
             continue
         name = firm_data["name"].iloc[0] if "name" in firm_data.columns else ticker
-        fig.add_trace(go.Scatter(
-            x=firm_data["year"],
-            y=firm_data["z_score"],
-            mode="lines+markers",
-            name=f"{ticker} ({name})",
-            line=dict(width=2),
-            marker=dict(size=8),
-            hovertemplate=f"{ticker}<br>Year: %{{x}}<br>Z-Score: %{{y:.2f}}<extra></extra>",
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=firm_data["year"],
+                y=firm_data["z_score"],
+                mode="lines+markers",
+                name=f"{ticker} ({name})",
+                line=dict(width=2),
+                marker=dict(size=8),
+                hovertemplate=f"{ticker}<br>Year: %{{x}}<br>Z-Score: %{{y:.2f}}<extra></extra>",
+            )
+        )
 
     fig.update_layout(
         title="Altman Z-Score Time Series",
@@ -273,7 +307,8 @@ def build_macro_chart(macro_df: pd.DataFrame, config: dict) -> go.Figure:
     n = len(series_list)
 
     fig = make_subplots(
-        rows=n, cols=1,
+        rows=n,
+        cols=1,
         shared_xaxes=True,
         subplot_titles=[name.replace("_", " ").title() for name, _ in series_list],
         vertical_spacing=0.08,
@@ -293,7 +328,8 @@ def build_macro_chart(macro_df: pd.DataFrame, config: dict) -> go.Figure:
                 line=dict(color=colors[i % len(colors)], width=2),
                 showlegend=False,
             ),
-            row=i + 1, col=1,
+            row=i + 1,
+            col=1,
         )
 
     fig.update_layout(
@@ -327,21 +363,25 @@ def build_ratio_comparison(scores_df: pd.DataFrame, year: int) -> go.Figure:
 
     colors = [ZONE_COLORS.get(z, "#95a5a6") for z in df_year["credit_zone"]]
 
-    fig = go.Figure(go.Bar(
-        x=df_year["ticker"],
-        y=df_year["z_score"],
-        marker_color=colors,
-        text=[f"{z:.2f}" for z in df_year["z_score"]],
-        textposition="outside",
-        hovertemplate=(
-            "<b>%{x}</b><br>Z-Score: %{y:.2f}<br>"
-            "<extra></extra>"
-        ),
-    ))
-    fig.add_hline(y=2.99, line_dash="dash", line_color="#2ecc71",
-                  annotation_text="Safe threshold")
-    fig.add_hline(y=1.81, line_dash="dash", line_color="#e74c3c",
-                  annotation_text="Distress threshold")
+    fig = go.Figure(
+        go.Bar(
+            x=df_year["ticker"],
+            y=df_year["z_score"],
+            marker_color=colors,
+            text=[f"{z:.2f}" for z in df_year["z_score"]],
+            textposition="outside",
+            hovertemplate=("<b>%{x}</b><br>Z-Score: %{y:.2f}<br><extra></extra>"),
+        )
+    )
+    fig.add_hline(
+        y=2.99, line_dash="dash", line_color="#2ecc71", annotation_text="Safe threshold"
+    )
+    fig.add_hline(
+        y=1.81,
+        line_dash="dash",
+        line_color="#e74c3c",
+        annotation_text="Distress threshold",
+    )
     fig.update_layout(
         title=f"Altman Z-Score by Firm ({year})",
         xaxis_title="Firm",

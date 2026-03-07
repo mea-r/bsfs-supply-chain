@@ -24,7 +24,6 @@ Propagation is deliberately rule-based (not a learned model) because:
 
 import logging
 import copy
-from typing import Optional
 
 import pandas as pd
 import numpy as np
@@ -114,43 +113,66 @@ class PropagationEngine:
 
         # Add nodes from scores
         for ticker, row in self._base_scores.iterrows():
-            G.add_node(ticker, **{
-                "name": str(row.get("name", ticker)),
-                "z_score": float(row.get("z_score", float("nan"))),
-                "credit_zone": str(row.get("credit_zone", "unknown")),
-                "current_ratio": float(row.get("current_ratio", float("nan"))),
-                "interest_coverage_ratio": float(row.get("interest_coverage_ratio", float("nan"))),
-                "debt_to_equity": float(row.get("debt_to_equity", float("nan"))),
-                "revenue": float(row.get("revenue", float("nan"))),
-                "ebit": float(row.get("ebit", float("nan"))),
-                "interest_expense": float(row.get("interest_expense", float("nan"))),
-                "total_assets": float(row.get("total_assets", float("nan"))),
-                "total_liabilities": float(row.get("total_liabilities", float("nan"))),
-                "market_cap": float(row.get("market_cap", float("nan"))),
-                "retained_earnings": float(row.get("retained_earnings", float("nan"))),
-                "current_assets": float(row.get("current_assets", float("nan"))),
-                "current_liabilities": float(row.get("current_liabilities", float("nan"))),
-                "stress_score": 0.0,   # propagated stress accumulator
-            })
+            G.add_node(
+                ticker,
+                **{
+                    "name": str(row.get("name", ticker)),
+                    "z_score": float(row.get("z_score", float("nan"))),
+                    "credit_zone": str(row.get("credit_zone", "unknown")),
+                    "current_ratio": float(row.get("current_ratio", float("nan"))),
+                    "interest_coverage_ratio": float(
+                        row.get("interest_coverage_ratio", float("nan"))
+                    ),
+                    "debt_to_equity": float(row.get("debt_to_equity", float("nan"))),
+                    "revenue": float(row.get("revenue", float("nan"))),
+                    "ebit": float(row.get("ebit", float("nan"))),
+                    "interest_expense": float(
+                        row.get("interest_expense", float("nan"))
+                    ),
+                    "total_assets": float(row.get("total_assets", float("nan"))),
+                    "total_liabilities": float(
+                        row.get("total_liabilities", float("nan"))
+                    ),
+                    "market_cap": float(row.get("market_cap", float("nan"))),
+                    "retained_earnings": float(
+                        row.get("retained_earnings", float("nan"))
+                    ),
+                    "current_assets": float(row.get("current_assets", float("nan"))),
+                    "current_liabilities": float(
+                        row.get("current_liabilities", float("nan"))
+                    ),
+                    "stress_score": 0.0,  # propagated stress accumulator
+                },
+            )
 
         # Add nodes from edges (in case some tickers only appear as edges)
         all_edge_nodes = set(self._edges["source"]) | set(self._edges["target"])
         for node in all_edge_nodes:
             if node not in G:
-                G.add_node(node, name=node, z_score=float("nan"),
-                           credit_zone="unknown", stress_score=0.0)
+                G.add_node(
+                    node,
+                    name=node,
+                    z_score=float("nan"),
+                    credit_zone="unknown",
+                    stress_score=0.0,
+                )
 
         # Add edges
         for _, edge in self._edges.iterrows():
             src = edge["source"]
             tgt = edge["target"]
             w = float(edge.get("weight", 0.5))
-            G.add_edge(src, tgt,
-                       weight=w,
-                       relationship_type=edge.get("relationship_type", "unknown"),
-                       assumption_basis=edge.get("assumption_basis", ""))
+            G.add_edge(
+                src,
+                tgt,
+                weight=w,
+                relationship_type=edge.get("relationship_type", "unknown"),
+                assumption_basis=edge.get("assumption_basis", ""),
+            )
 
-        logger.info(f"Graph built: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
+        logger.info(
+            f"Graph built: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges"
+        )
         return G
 
     def _initialize_node_states(self) -> None:
@@ -204,15 +226,20 @@ class PropagationEngine:
         coefs = []
 
         if not (pd.isna(ca) or pd.isna(cl)):
-            components.append((ca - cl) / ta); coefs.append(w["w1"])
+            components.append((ca - cl) / ta)
+            coefs.append(w["w1"])
         if not pd.isna(re):
-            components.append(re / ta); coefs.append(w["w2"])
+            components.append(re / ta)
+            coefs.append(w["w2"])
         if not pd.isna(ebit):
-            components.append(ebit / ta); coefs.append(w["w3"])
+            components.append(ebit / ta)
+            coefs.append(w["w3"])
         if not pd.isna(mc) and not pd.isna(tl) and tl != 0:
-            components.append(mc / tl); coefs.append(w["w4"])
+            components.append(mc / tl)
+            coefs.append(w["w4"])
         if not pd.isna(rev):
-            components.append(rev / ta); coefs.append(w["w5"])
+            components.append(rev / ta)
+            coefs.append(w["w5"])
 
         if len(components) < 3:
             return float("nan")
@@ -268,7 +295,9 @@ class PropagationEngine:
         severity = max(0.0, distress_threshold - src_z) / distress_threshold
         return severity * edge_weight
 
-    def _apply_rule2_liquidity_cascade(self, source_state: dict, edge_weight: float) -> float:
+    def _apply_rule2_liquidity_cascade(
+        self, source_state: dict, edge_weight: float
+    ) -> float:
         """
         Rule 2: Liquidity Cascade.
 
@@ -287,7 +316,10 @@ class PropagationEngine:
             Additional stress multiplier contribution.
         """
         cr = source_state.get("current_ratio", float("nan"))
-        if pd.isna(cr) or cr >= self.config["ratios"]["liquidity"]["current_ratio_stress"]:
+        if (
+            pd.isna(cr)
+            or cr >= self.config["ratios"]["liquidity"]["current_ratio_stress"]
+        ):
             return 0.0
         # Severity: how illiquid (CR=0 → max severity=1, CR=0.99 → near zero)
         severity = max(0.0, 1.0 - cr)
@@ -325,7 +357,7 @@ class PropagationEngine:
             Dampened stress.
         """
         alpha = self.prop_config["contagion_damping_alpha"]
-        return stress * (alpha ** hops)
+        return stress * (alpha**hops)
 
     def _apply_rule4_chokepoint_amplification(
         self, node: str, state: dict, stress: float
@@ -401,8 +433,10 @@ class PropagationEngine:
         if scenario_config is None:
             raise ValueError(f"Unknown scenario_id: {scenario_id}. Valid: S1, S2, S3")
 
-        logger.info(f"Applying shock {scenario_id} ('{scenario_config['name']}') "
-                    f"with magnitude={magnitude}, focal_firm={focal_firm}")
+        logger.info(
+            f"Applying shock {scenario_id} ('{scenario_config['name']}') "
+            f"with magnitude={magnitude}, focal_firm={focal_firm}"
+        )
 
         if scenario_id == "S1":
             self._shock_s1_interest_rate_spike(magnitude)
@@ -415,17 +449,20 @@ class PropagationEngine:
                 logger.info(f"S3: No focal firm specified; defaulting to {focal_firm}")
             self._shock_s3_supplier_failure(focal_firm, magnitude)
 
-        self.shock_log.append({
-            "scenario_id": scenario_id,
-            "name": scenario_config["name"],
-            "magnitude": magnitude,
-            "focal_firm": focal_firm,
-        })
+        self.shock_log.append(
+            {
+                "scenario_id": scenario_id,
+                "name": scenario_config["name"],
+                "magnitude": magnitude,
+                "focal_firm": focal_firm,
+            }
+        )
 
         return self.node_states
 
-    def _apply_z_score_delta(self, state: dict, ebit_delta: float = 0.0,
-                             revenue_delta: float = 0.0) -> None:
+    def _apply_z_score_delta(
+        self, state: dict, ebit_delta: float = 0.0, revenue_delta: float = 0.0
+    ) -> None:
         """
         Apply incremental Z-score change from a shock, preserving the precomputed baseline.
 
@@ -555,7 +592,9 @@ class PropagationEngine:
                 ebit = state.get("ebit", float("nan"))
                 if not pd.isna(ebit):
                     # Operating leverage: EBIT loss > revenue loss due to fixed costs
-                    operating_leverage = self.prop_config.get("s2_operating_leverage", 1.5)
+                    operating_leverage = self.prop_config.get(
+                        "s2_operating_leverage", 1.5
+                    )
                     state["ebit"] = ebit - rev_loss * operating_leverage
             state["z_score"] = self._recompute_z_score(state)
             state["credit_zone"] = self._classify_zone(state["z_score"])
@@ -586,14 +625,15 @@ class PropagationEngine:
             Severity scalar (1.0 = full distress floor, <1 = partial).
         """
         if focal_firm not in self.node_states:
-            raise ValueError(f"Focal firm '{focal_firm}' not in graph. "
-                             f"Available: {list(self.node_states.keys())}")
+            raise ValueError(
+                f"Focal firm '{focal_firm}' not in graph. "
+                f"Available: {list(self.node_states.keys())}"
+            )
 
         state = self.node_states[focal_firm]
         # Set Z-score to distress floor (0 = theoretical minimum; 1.0 = distress boundary)
         distress_floor = 0.0
         original_z = state.get("z_score", float("nan"))
-        distress_threshold = self.zone_thresholds["grey_threshold"]
         # Interpolate between current Z and 0 based on magnitude
         if not pd.isna(original_z):
             shocked_z = original_z - magnitude * (original_z - distress_floor)
@@ -620,7 +660,8 @@ class PropagationEngine:
         """
         # Find all seed nodes (distressed or stressed suppliers)
         seeds = [
-            n for n, state in self.node_states.items()
+            n
+            for n, state in self.node_states.items()
             if state.get("credit_zone") in ("distress", "grey")
             or state.get("shock_applied", False)
         ]
@@ -654,7 +695,9 @@ class PropagationEngine:
                 stress_raw = stress_r1 + stress_r2
 
                 # Rule 3: Contagion dampening
-                stress_dampened = self._apply_rule3_contagion_dampening(stress_raw, hops)
+                stress_dampened = self._apply_rule3_contagion_dampening(
+                    stress_raw, hops
+                )
 
                 # Rule 4: Chokepoint amplification on the buyer
                 stress_final = self._apply_rule4_chokepoint_amplification(
@@ -681,9 +724,15 @@ class PropagationEngine:
                         z_scaling = self.prop_config.get("stress_to_z_scaling", 0.15)
                         z_floor = self.prop_config.get("z_score_floor", -10.0)
                         buyer_state["z_score"] = round(
-                            max(z_floor, current_z - accumulated * abs(current_z) * z_scaling), 4
+                            max(
+                                z_floor,
+                                current_z - accumulated * abs(current_z) * z_scaling,
+                            ),
+                            4,
                         )
-                        buyer_state["credit_zone"] = self._classify_zone(buyer_state["z_score"])
+                        buyer_state["credit_zone"] = self._classify_zone(
+                            buyer_state["z_score"]
+                        )
 
                 # Continue propagation if stress is still meaningful
                 min_propagate = self.prop_config.get("min_stress_propagate", 0.01)
@@ -722,11 +771,17 @@ class PropagationEngine:
                     ebit = supplier_state.get("ebit", float("nan"))
                     if not pd.isna(ebit):
                         # Higher operating leverage for smaller suppliers
-                        upstream_leverage = self.prop_config.get("upstream_operating_leverage", 1.3)
-                        supplier_state["ebit"] = ebit * (1 - rev_impact * upstream_leverage)
+                        upstream_leverage = self.prop_config.get(
+                            "upstream_operating_leverage", 1.3
+                        )
+                        supplier_state["ebit"] = ebit * (
+                            1 - rev_impact * upstream_leverage
+                        )
 
                 supplier_state["z_score"] = self._recompute_z_score(supplier_state)
-                supplier_state["credit_zone"] = self._classify_zone(supplier_state["z_score"])
+                supplier_state["credit_zone"] = self._classify_zone(
+                    supplier_state["z_score"]
+                )
                 supplier_state["stress_score"] = (
                     supplier_state.get("stress_score", 0.0) + rev_impact
                 )
@@ -779,15 +834,17 @@ class PropagationEngine:
 
         # Add source itself
         src_state = self.node_states.get(firm_id, {})
-        path.append({
-            "firm": firm_id,
-            "name": src_state.get("name", firm_id),
-            "hops": 0,
-            "stress_score": src_state.get("stress_score", 0.0),
-            "credit_zone": src_state.get("credit_zone", "unknown"),
-            "z_score": src_state.get("z_score", float("nan")),
-            "role": "source",
-        })
+        path.append(
+            {
+                "firm": firm_id,
+                "name": src_state.get("name", firm_id),
+                "hops": 0,
+                "stress_score": src_state.get("stress_score", 0.0),
+                "credit_zone": src_state.get("credit_zone", "unknown"),
+                "z_score": src_state.get("z_score", float("nan")),
+                "role": "source",
+            }
+        )
 
         while queue:
             node, hops = queue.pop(0)
@@ -795,15 +852,17 @@ class PropagationEngine:
                 if neighbor not in visited:
                     visited.add(neighbor)
                     state = self.node_states.get(neighbor, {})
-                    path.append({
-                        "firm": neighbor,
-                        "name": state.get("name", neighbor),
-                        "hops": hops + 1,
-                        "stress_score": state.get("stress_score", 0.0),
-                        "credit_zone": state.get("credit_zone", "unknown"),
-                        "z_score": state.get("z_score", float("nan")),
-                        "role": "downstream",
-                    })
+                    path.append(
+                        {
+                            "firm": neighbor,
+                            "name": state.get("name", neighbor),
+                            "hops": hops + 1,
+                            "stress_score": state.get("stress_score", 0.0),
+                            "credit_zone": state.get("credit_zone", "unknown"),
+                            "z_score": state.get("z_score", float("nan")),
+                            "role": "downstream",
+                        }
+                    )
                     queue.append((neighbor, hops + 1))
 
         return path
@@ -853,18 +912,21 @@ class PropagationEngine:
                 4,
             )
 
-            chokepoints.append({
-                "ticker": node,
-                "name": state.get("name", node),
-                "in_degree": in_deg,
-                "out_degree": out_deg,
-                "credit_zone": zone,
-                "z_score": state.get("z_score", float("nan")),
-                "stress_score": state.get("stress_score", 0.0),
-                "betweenness_centrality": round(bc, 4),
-                "risk_score": risk_score,
-                "is_chokepoint": out_deg >= threshold and zone in ("grey", "distress"),
-            })
+            chokepoints.append(
+                {
+                    "ticker": node,
+                    "name": state.get("name", node),
+                    "in_degree": in_deg,
+                    "out_degree": out_deg,
+                    "credit_zone": zone,
+                    "z_score": state.get("z_score", float("nan")),
+                    "stress_score": state.get("stress_score", 0.0),
+                    "betweenness_centrality": round(bc, 4),
+                    "risk_score": risk_score,
+                    "is_chokepoint": out_deg >= threshold
+                    and zone in ("grey", "distress"),
+                }
+            )
 
         return sorted(chokepoints, key=lambda x: x["risk_score"], reverse=True)
 
@@ -914,10 +976,9 @@ class PropagationEngine:
         dict
             Summary statistics.
         """
-        after = pd.Series({
-            n: s.get("credit_zone", "unknown")
-            for n, s in self.node_states.items()
-        })
+        after = pd.Series(
+            {n: s.get("credit_zone", "unknown") for n, s in self.node_states.items()}
+        )
         after_counts = after.value_counts().to_dict()
 
         result = {
@@ -928,10 +989,9 @@ class PropagationEngine:
             ),
         }
         if before_states:
-            before = pd.Series({
-                n: s.get("credit_zone", "unknown")
-                for n, s in before_states.items()
-            })
+            before = pd.Series(
+                {n: s.get("credit_zone", "unknown") for n, s in before_states.items()}
+            )
             before_counts = before.value_counts().to_dict()
             result["before"] = before_counts
             result["new_distressed"] = max(
@@ -967,7 +1027,9 @@ def build_engine(
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(levelname)s %(name)s: %(message)s"
+    )
     engine = build_engine()
     print("=== Base Chokepoints ===")
     for cp in engine.get_chokepoints()[:5]:

@@ -28,13 +28,13 @@ in assumption_basis. This supports audit traceability.
 """
 
 import logging
-import pandas as pd
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
-
+import pandas as pd
 
 from utils.config import load_config
+
+logger = logging.getLogger(__name__)
 
 
 # -----------------------------------------------------------------------
@@ -54,81 +54,190 @@ from utils.config import load_config
 AUTOMOTIVE_EDGES = [
     # ---- Tier 2 → Tier 1 (major supply relationships) ----
     # Aptiv → GM: Aptiv is GM's primary electrical architecture supplier
-    {"source": "APTV", "target": "GM",   "relationship_type": "tier2_to_tier1",
-     "weight": 0.35, "assumption_basis": "Aptiv 10-K 2022: GM >10% of revenue"},
+    {
+        "source": "APTV",
+        "target": "GM",
+        "relationship_type": "tier2_to_tier1",
+        "weight": 0.35,
+        "assumption_basis": "Aptiv 10-K 2022: GM >10% of revenue",
+    },
     # Aptiv → Ford
-    {"source": "APTV", "target": "F",    "relationship_type": "tier2_to_tier1",
-     "weight": 0.30, "assumption_basis": "Aptiv 10-K 2022: Ford >10% of revenue"},
+    {
+        "source": "APTV",
+        "target": "F",
+        "relationship_type": "tier2_to_tier1",
+        "weight": 0.30,
+        "assumption_basis": "Aptiv 10-K 2022: Ford >10% of revenue",
+    },
     # Aptiv → Toyota
-    {"source": "APTV", "target": "TM",   "relationship_type": "tier2_to_tier1",
-     "weight": 0.20, "assumption_basis": "Aptiv 10-K 2022: Toyota disclosed major customer"},
+    {
+        "source": "APTV",
+        "target": "TM",
+        "relationship_type": "tier2_to_tier1",
+        "weight": 0.20,
+        "assumption_basis": "Aptiv 10-K 2022: Toyota disclosed major customer",
+    },
     # Aptiv → Stellantis
-    {"source": "APTV", "target": "STLA", "relationship_type": "tier2_to_tier1",
-     "weight": 0.15, "assumption_basis": "Aptiv 10-K 2022: Stellantis disclosed supplier"},
-
+    {
+        "source": "APTV",
+        "target": "STLA",
+        "relationship_type": "tier2_to_tier1",
+        "weight": 0.15,
+        "assumption_basis": "Aptiv 10-K 2022: Stellantis disclosed supplier",
+    },
     # BorgWarner → Ford: electrification components
-    {"source": "BWA",  "target": "F",    "relationship_type": "tier2_to_tier1",
-     "weight": 0.40, "assumption_basis": "BorgWarner 10-K 2022: Ford 19% of revenue"},
+    {
+        "source": "BWA",
+        "target": "F",
+        "relationship_type": "tier2_to_tier1",
+        "weight": 0.40,
+        "assumption_basis": "BorgWarner 10-K 2022: Ford 19% of revenue",
+    },
     # BorgWarner → Stellantis
-    {"source": "BWA",  "target": "STLA", "relationship_type": "tier2_to_tier1",
-     "weight": 0.30, "assumption_basis": "BorgWarner 10-K 2022: Stellantis 14% of revenue"},
+    {
+        "source": "BWA",
+        "target": "STLA",
+        "relationship_type": "tier2_to_tier1",
+        "weight": 0.30,
+        "assumption_basis": "BorgWarner 10-K 2022: Stellantis 14% of revenue",
+    },
     # BorgWarner → GM
-    {"source": "BWA",  "target": "GM",   "relationship_type": "tier2_to_tier1",
-     "weight": 0.25, "assumption_basis": "BorgWarner 10-K 2022: GM 11% of revenue"},
+    {
+        "source": "BWA",
+        "target": "GM",
+        "relationship_type": "tier2_to_tier1",
+        "weight": 0.25,
+        "assumption_basis": "BorgWarner 10-K 2022: GM 11% of revenue",
+    },
     # BorgWarner → Toyota
-    {"source": "BWA",  "target": "TM",   "relationship_type": "tier2_to_tier1",
-     "weight": 0.10, "assumption_basis": "inferred_sector_structure: BorgWarner Toyota hybrid components"},
-
+    {
+        "source": "BWA",
+        "target": "TM",
+        "relationship_type": "tier2_to_tier1",
+        "weight": 0.10,
+        "assumption_basis": "inferred_sector_structure: BorgWarner Toyota hybrid components",
+    },
     # Magna → Ford: body/chassis/closures
-    {"source": "MGA",  "target": "F",    "relationship_type": "tier2_to_tier1",
-     "weight": 0.35, "assumption_basis": "Magna 10-K 2022: Ford top-3 customer"},
+    {
+        "source": "MGA",
+        "target": "F",
+        "relationship_type": "tier2_to_tier1",
+        "weight": 0.35,
+        "assumption_basis": "Magna 10-K 2022: Ford top-3 customer",
+    },
     # Magna → GM
-    {"source": "MGA",  "target": "GM",   "relationship_type": "tier2_to_tier1",
-     "weight": 0.30, "assumption_basis": "Magna 10-K 2022: GM top-3 customer"},
+    {
+        "source": "MGA",
+        "target": "GM",
+        "relationship_type": "tier2_to_tier1",
+        "weight": 0.30,
+        "assumption_basis": "Magna 10-K 2022: GM top-3 customer",
+    },
     # Magna → Stellantis
-    {"source": "MGA",  "target": "STLA", "relationship_type": "tier2_to_tier1",
-     "weight": 0.25, "assumption_basis": "Magna 10-K 2022: Stellantis top-3 customer"},
+    {
+        "source": "MGA",
+        "target": "STLA",
+        "relationship_type": "tier2_to_tier1",
+        "weight": 0.25,
+        "assumption_basis": "Magna 10-K 2022: Stellantis top-3 customer",
+    },
     # Magna → Toyota
-    {"source": "MGA",  "target": "TM",   "relationship_type": "tier2_to_tier1",
-     "weight": 0.10, "assumption_basis": "inferred_sector_structure: Magna Toyota closures contracts"},
-
+    {
+        "source": "MGA",
+        "target": "TM",
+        "relationship_type": "tier2_to_tier1",
+        "weight": 0.10,
+        "assumption_basis": "inferred_sector_structure: Magna Toyota closures contracts",
+    },
     # ---- Tier 3 → Tier 2 (component supplier to Tier 2) ----
     # Lear → GM: seating systems
-    {"source": "LEA",  "target": "GM",   "relationship_type": "tier3_to_tier1_direct",
-     "weight": 0.45, "assumption_basis": "Lear 10-K 2022: GM 24% of revenue (direct OEM)"},
+    {
+        "source": "LEA",
+        "target": "GM",
+        "relationship_type": "tier3_to_tier1_direct",
+        "weight": 0.45,
+        "assumption_basis": "Lear 10-K 2022: GM 24% of revenue (direct OEM)",
+    },
     # Lear → Ford
-    {"source": "LEA",  "target": "F",    "relationship_type": "tier3_to_tier1_direct",
-     "weight": 0.35, "assumption_basis": "Lear 10-K 2022: Ford 20% of revenue (direct OEM)"},
+    {
+        "source": "LEA",
+        "target": "F",
+        "relationship_type": "tier3_to_tier1_direct",
+        "weight": 0.35,
+        "assumption_basis": "Lear 10-K 2022: Ford 20% of revenue (direct OEM)",
+    },
     # Lear → Stellantis
-    {"source": "LEA",  "target": "STLA", "relationship_type": "tier3_to_tier1_direct",
-     "weight": 0.25, "assumption_basis": "Lear 10-K 2022: Stellantis 14% of revenue (direct OEM)"},
-
+    {
+        "source": "LEA",
+        "target": "STLA",
+        "relationship_type": "tier3_to_tier1_direct",
+        "weight": 0.25,
+        "assumption_basis": "Lear 10-K 2022: Stellantis 14% of revenue (direct OEM)",
+    },
     # Adient → Ford: seating
-    {"source": "ADNT", "target": "F",    "relationship_type": "tier3_to_tier1_direct",
-     "weight": 0.40, "assumption_basis": "Adient 10-K 2022: Ford 20% of revenue (direct OEM)"},
+    {
+        "source": "ADNT",
+        "target": "F",
+        "relationship_type": "tier3_to_tier1_direct",
+        "weight": 0.40,
+        "assumption_basis": "Adient 10-K 2022: Ford 20% of revenue (direct OEM)",
+    },
     # Adient → Stellantis
-    {"source": "ADNT", "target": "STLA", "relationship_type": "tier3_to_tier1_direct",
-     "weight": 0.35, "assumption_basis": "Adient 10-K 2022: Stellantis 18% of revenue (direct OEM)"},
-
+    {
+        "source": "ADNT",
+        "target": "STLA",
+        "relationship_type": "tier3_to_tier1_direct",
+        "weight": 0.35,
+        "assumption_basis": "Adient 10-K 2022: Stellantis 18% of revenue (direct OEM)",
+    },
     # Dana → Stellantis: driveline systems
-    {"source": "DAN",  "target": "STLA", "relationship_type": "tier3_to_tier1_direct",
-     "weight": 0.38, "assumption_basis": "Dana 10-K 2022: Stellantis 20% of revenue (direct OEM)"},
+    {
+        "source": "DAN",
+        "target": "STLA",
+        "relationship_type": "tier3_to_tier1_direct",
+        "weight": 0.38,
+        "assumption_basis": "Dana 10-K 2022: Stellantis 20% of revenue (direct OEM)",
+    },
     # Dana → GM
-    {"source": "DAN",  "target": "GM",   "relationship_type": "tier3_to_tier1_direct",
-     "weight": 0.28, "assumption_basis": "Dana 10-K 2022: GM 16% of revenue (direct OEM)"},
+    {
+        "source": "DAN",
+        "target": "GM",
+        "relationship_type": "tier3_to_tier1_direct",
+        "weight": 0.28,
+        "assumption_basis": "Dana 10-K 2022: GM 16% of revenue (direct OEM)",
+    },
     # Dana → Ford
-    {"source": "DAN",  "target": "F",    "relationship_type": "tier3_to_tier1_direct",
-     "weight": 0.22, "assumption_basis": "Dana 10-K 2022: Ford 13% of revenue (direct OEM)"},
-
+    {
+        "source": "DAN",
+        "target": "F",
+        "relationship_type": "tier3_to_tier1_direct",
+        "weight": 0.22,
+        "assumption_basis": "Dana 10-K 2022: Ford 13% of revenue (direct OEM)",
+    },
     # Modine → BorgWarner: thermal management for EV drivetrains
-    {"source": "MOD",  "target": "BWA",  "relationship_type": "tier3_to_tier2",
-     "weight": 0.30, "assumption_basis": "inferred_sector_structure: Modine thermal mgmt for EV powertrains"},
+    {
+        "source": "MOD",
+        "target": "BWA",
+        "relationship_type": "tier3_to_tier2",
+        "weight": 0.30,
+        "assumption_basis": "inferred_sector_structure: Modine thermal mgmt for EV powertrains",
+    },
     # Modine → Aptiv: cooling systems for high-voltage wiring
-    {"source": "MOD",  "target": "APTV", "relationship_type": "tier3_to_tier2",
-     "weight": 0.20, "assumption_basis": "inferred_sector_structure: Modine thermal for electrical systems"},
+    {
+        "source": "MOD",
+        "target": "APTV",
+        "relationship_type": "tier3_to_tier2",
+        "weight": 0.20,
+        "assumption_basis": "inferred_sector_structure: Modine thermal for electrical systems",
+    },
     # Modine → GM (direct OEM thermal contracts)
-    {"source": "MOD",  "target": "GM",   "relationship_type": "tier3_to_tier1_direct",
-     "weight": 0.15, "assumption_basis": "inferred_sector_structure: Modine direct OEM thermal contracts"},
+    {
+        "source": "MOD",
+        "target": "GM",
+        "relationship_type": "tier3_to_tier1_direct",
+        "weight": 0.15,
+        "assumption_basis": "inferred_sector_structure: Modine direct OEM thermal contracts",
+    },
 ]
 
 
@@ -159,7 +268,13 @@ def build_edges(config: dict, extra_edges: list = None) -> pd.DataFrame:
     df = pd.DataFrame(edges)
 
     # Validate required columns
-    required_cols = {"source", "target", "relationship_type", "weight", "assumption_basis"}
+    required_cols = {
+        "source",
+        "target",
+        "relationship_type",
+        "weight",
+        "assumption_basis",
+    }
     missing = required_cols - set(df.columns)
     if missing:
         raise ValueError(f"Edge data missing required columns: {missing}")
@@ -167,7 +282,9 @@ def build_edges(config: dict, extra_edges: list = None) -> pd.DataFrame:
     # Validate weights in [0, 1]
     out_of_range = df[(df["weight"] < 0) | (df["weight"] > 1)]
     if not out_of_range.empty:
-        logger.warning(f"{len(out_of_range)} edges have weight outside [0,1]; clipping.")
+        logger.warning(
+            f"{len(out_of_range)} edges have weight outside [0,1]; clipping."
+        )
         df["weight"] = df["weight"].clip(0, 1)
 
     out_path = Path(config["data"]["supply_chain_dir"]) / "edges.csv"

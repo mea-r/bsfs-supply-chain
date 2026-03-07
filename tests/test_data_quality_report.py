@@ -9,14 +9,14 @@ Validates:
 
 import sys
 from pathlib import Path
+
 import pytest
 import pandas as pd
-import numpy as np
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
-from data_engineering.data_quality_report import audit_dataframe, generate_report
+from data_engineering.data_quality_report import audit_dataframe, generate_report  # noqa: E402
 
 TEST_CONFIG = {
     "sector": "automotive",
@@ -26,46 +26,54 @@ TEST_CONFIG = {
 
 def _make_complete_df():
     """Fully populated synthetic dataframe."""
-    return pd.DataFrame([
-        {
-            "ticker": "HEALTHY", "name": "Healthy Co", "year": 2023,
-            "total_assets": 1_000_000,
-            "current_assets": 500_000,
-            "current_liabilities": 250_000,
-            "total_liabilities": 600_000,
-            "retained_earnings": 300_000,
-            "ebit": 100_000,
-            "market_cap": 900_000,
-            "revenue": 1_200_000,
-            "interest_expense": 20_000,
-            "accounts_payable": 100_000,
-            "accounts_receivable": 150_000,
-            "cogs": 700_000,
-            "long_term_debt": 350_000,
-            "stockholders_equity": 400_000,
-            "z_score": 3.5, "credit_zone": "safe",
-            "current_ratio": 2.0,
-        },
-        {
-            "ticker": "STRESSED", "name": "Stressed Co", "year": 2023,
-            "total_assets": 500_000,
-            "current_assets": 100_000,
-            "current_liabilities": 300_000,
-            "total_liabilities": 450_000,
-            "retained_earnings": -200_000,
-            "ebit": -30_000,
-            "market_cap": 50_000,
-            "revenue": 300_000,
-            "interest_expense": 40_000,
-            "accounts_payable": 200_000,
-            "accounts_receivable": 80_000,
-            "cogs": 250_000,
-            "long_term_debt": 150_000,
-            "stockholders_equity": 50_000,
-            "z_score": 0.8, "credit_zone": "distress",
-            "current_ratio": 0.33,
-        },
-    ])
+    return pd.DataFrame(
+        [
+            {
+                "ticker": "HEALTHY",
+                "name": "Healthy Co",
+                "year": 2023,
+                "total_assets": 1_000_000,
+                "current_assets": 500_000,
+                "current_liabilities": 250_000,
+                "total_liabilities": 600_000,
+                "retained_earnings": 300_000,
+                "ebit": 100_000,
+                "market_cap": 900_000,
+                "revenue": 1_200_000,
+                "interest_expense": 20_000,
+                "accounts_payable": 100_000,
+                "accounts_receivable": 150_000,
+                "cogs": 700_000,
+                "long_term_debt": 350_000,
+                "stockholders_equity": 400_000,
+                "z_score": 3.5,
+                "credit_zone": "safe",
+                "current_ratio": 2.0,
+            },
+            {
+                "ticker": "STRESSED",
+                "name": "Stressed Co",
+                "year": 2023,
+                "total_assets": 500_000,
+                "current_assets": 100_000,
+                "current_liabilities": 300_000,
+                "total_liabilities": 450_000,
+                "retained_earnings": -200_000,
+                "ebit": -30_000,
+                "market_cap": 50_000,
+                "revenue": 300_000,
+                "interest_expense": 40_000,
+                "accounts_payable": 200_000,
+                "accounts_receivable": 80_000,
+                "cogs": 250_000,
+                "long_term_debt": 150_000,
+                "stockholders_equity": 50_000,
+                "z_score": 0.8,
+                "credit_zone": "distress",
+                "current_ratio": 0.33,
+            },
+        ]
+    )
 
 
 def _make_partial_df():
@@ -80,7 +88,6 @@ def _make_partial_df():
 
 
 class TestAuditDataframe:
-
     def test_missing_fields_detected(self):
         df = _make_partial_df()
         audit = audit_dataframe(df)
@@ -102,7 +109,9 @@ class TestAuditDataframe:
         df.loc[0, "total_assets"] = -1_000  # anomaly
         audit = audit_dataframe(df)
         anomalies = audit["anomalies"]
-        neg_asset_flags = [a for a in anomalies if "Negative total_assets" in a["issue"]]
+        neg_asset_flags = [
+            a for a in anomalies if "Negative total_assets" in a["issue"]
+        ]
         assert len(neg_asset_flags) >= 1
 
     def test_zero_revenue_flagged(self):
@@ -130,7 +139,6 @@ class TestAuditDataframe:
 
 
 class TestGenerateReport:
-
     def test_report_contains_required_sections(self, tmp_path):
         df = _make_complete_df()
         output = tmp_path / "test_report.md"
@@ -161,8 +169,15 @@ class TestGenerateReport:
         df = _make_partial_df()
         # Create a firm with >50% missing
         worst = {col: float("nan") for col in df.columns}
-        worst.update({"ticker": "WORST", "name": "Worst Co", "year": 2023,
-                      "z_score": float("nan"), "credit_zone": "unknown"})
+        worst.update(
+            {
+                "ticker": "WORST",
+                "name": "Worst Co",
+                "year": 2023,
+                "z_score": float("nan"),
+                "credit_zone": "unknown",
+            }
+        )
         df = pd.concat([df, pd.DataFrame([worst])], ignore_index=True)
         output = tmp_path / "test_report.md"
         report = generate_report(df, TEST_CONFIG, str(output))

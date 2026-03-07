@@ -9,16 +9,15 @@ Validates:
 """
 
 import sys
-from pathlib import Path
-import pytest
-import pandas as pd
-import tempfile
 import os
+from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
-from data_engineering.supply_chain_builder import build_edges, AUTOMOTIVE_EDGES
+from data_engineering.supply_chain_builder import build_edges, AUTOMOTIVE_EDGES  # noqa: E402
 
 TEST_CONFIG = {
     "data": {
@@ -43,21 +42,27 @@ TEST_CONFIG = {
             {"ticker": "DAN", "name": "Dana", "cik": "0000026780"},
             {"ticker": "MOD", "name": "Modine", "cik": "0000067912"},
         ],
-    }
+    },
 }
 
 
 class TestSupplyChainBuilder:
-
     @pytest.fixture
     def edges_df(self):
         os.makedirs("/tmp/test_supply_chain", exist_ok=True)
         return build_edges(TEST_CONFIG)
 
     def test_required_columns_present(self, edges_df):
-        required = {"source", "target", "relationship_type", "weight", "assumption_basis"}
-        assert required.issubset(set(edges_df.columns)), \
+        required = {
+            "source",
+            "target",
+            "relationship_type",
+            "weight",
+            "assumption_basis",
+        }
+        assert required.issubset(set(edges_df.columns)), (
             f"Missing columns: {required - set(edges_df.columns)}"
+        )
 
     def test_weights_in_valid_range(self, edges_df):
         assert (edges_df["weight"] >= 0).all(), "Weights must be >= 0"
@@ -71,39 +76,48 @@ class TestSupplyChainBuilder:
         assert len(edges_df) > 0, "Edge dataset must not be empty"
 
     def test_all_edges_have_assumption_basis(self, edges_df):
-        missing_basis = edges_df[edges_df["assumption_basis"].isna() |
-                                  (edges_df["assumption_basis"] == "")]
-        assert missing_basis.empty, \
-            f"All edges must have assumption_basis; missing for: {missing_basis[['source','target']].values}"
+        missing_basis = edges_df[
+            edges_df["assumption_basis"].isna() | (edges_df["assumption_basis"] == "")
+        ]
+        assert missing_basis.empty, (
+            f"All edges must have assumption_basis; missing for: {missing_basis[['source', 'target']].values}"
+        )
 
     def test_known_tier1_buyers_present(self, edges_df):
         tier1 = {"TM", "F", "GM", "STLA"}
         targets = set(edges_df["target"])
         # At least 3 of the 4 Tier-1 OEMs should appear as targets
         overlap = tier1 & targets
-        assert len(overlap) >= 3, f"Expected most Tier-1 OEMs as buyers; found only: {overlap}"
+        assert len(overlap) >= 3, (
+            f"Expected most Tier-1 OEMs as buyers; found only: {overlap}"
+        )
 
     def test_extra_edges_appended(self):
         os.makedirs("/tmp/test_supply_chain", exist_ok=True)
-        extra = [{
-            "source": "NEW_SUP",
-            "target": "TM",
-            "relationship_type": "test",
-            "weight": 0.1,
-            "assumption_basis": "test only",
-        }]
+        extra = [
+            {
+                "source": "NEW_SUP",
+                "target": "TM",
+                "relationship_type": "test",
+                "weight": 0.1,
+                "assumption_basis": "test only",
+            }
+        ]
         df = build_edges(TEST_CONFIG, extra_edges=extra)
         assert "NEW_SUP" in df["source"].values
 
     def test_weight_clipping(self):
         """Edge weights outside [0,1] should be clipped, not raise error."""
         os.makedirs("/tmp/test_supply_chain", exist_ok=True)
-        extra = [{
-            "source": "A", "target": "B",
-            "relationship_type": "test",
-            "weight": 1.5,  # invalid
-            "assumption_basis": "test",
-        }]
+        extra = [
+            {
+                "source": "A",
+                "target": "B",
+                "relationship_type": "test",
+                "weight": 1.5,  # invalid
+                "assumption_basis": "test",
+            }
+        ]
         df = build_edges(TEST_CONFIG, extra_edges=extra)
         bad_a = df[df["source"] == "A"]
         assert bad_a["weight"].iloc[0] <= 1.0, "Weight > 1 should be clipped to 1"

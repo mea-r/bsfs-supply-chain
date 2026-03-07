@@ -15,13 +15,11 @@ Economic context:
 
 import logging
 import time
-import os
 from pathlib import Path
 from typing import Optional
 
 import requests
 import pandas as pd
-import numpy as np
 from utils.config import load_config
 
 logger = logging.getLogger(__name__)
@@ -103,10 +101,12 @@ class SECEdgarScraper:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.years = config["data"]["years"]
         self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": self.user_agent,
-            "Accept": "application/json",
-        })
+        self.session.headers.update(
+            {
+                "User-Agent": self.user_agent,
+                "Accept": "application/json",
+            }
+        )
 
     def _get_company_facts(self, cik: str) -> Optional[dict]:
         """
@@ -133,10 +133,10 @@ class SECEdgarScraper:
                 logger.warning(f"HTTP {e.response.status_code} for CIK {cik}: {e}")
                 if e.response.status_code == 404:
                     return None  # firm not found; no retry
-                time.sleep(2 ** attempt)
+                time.sleep(2**attempt)
             except Exception as e:
-                logger.warning(f"Attempt {attempt+1} failed for CIK {cik}: {e}")
-                time.sleep(2 ** attempt)
+                logger.warning(f"Attempt {attempt + 1} failed for CIK {cik}: {e}")
+                time.sleep(2**attempt)
         logger.error(f"All attempts failed for CIK {cik}")
         return None
 
@@ -207,14 +207,19 @@ class SECEdgarScraper:
         """
         try:
             import yfinance as yf
+
             start = f"{year}-12-15"
-            end = f"{year+1}-01-15"
-            data = yf.download(ticker, start=start, end=end, progress=False, auto_adjust=True)
+            end = f"{year + 1}-01-15"
+            data = yf.download(
+                ticker, start=start, end=end, progress=False, auto_adjust=True
+            )
             if data.empty:
                 return float("nan")
             close = float(data["Close"].iloc[-1])
             info = yf.Ticker(ticker).fast_info
-            shares = getattr(info, "shares", None) or getattr(info, "shares_outstanding", None)
+            shares = getattr(info, "shares", None) or getattr(
+                info, "shares_outstanding", None
+            )
             if shares is None:
                 return float("nan")
             return close * shares

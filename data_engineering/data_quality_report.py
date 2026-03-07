@@ -12,7 +12,6 @@ For each firm-year, flags:
 
 import logging
 import pandas as pd
-import numpy as np
 from pathlib import Path
 from datetime import datetime
 
@@ -22,13 +21,22 @@ logger = logging.getLogger(__name__)
 
 # Columns required for Z-score; all others are supplemental
 CRITICAL_FIELDS = [
-    "total_assets", "current_assets", "current_liabilities",
-    "retained_earnings", "ebit", "market_cap", "revenue",
+    "total_assets",
+    "current_assets",
+    "current_liabilities",
+    "retained_earnings",
+    "ebit",
+    "market_cap",
+    "revenue",
     "total_liabilities",
 ]
 SUPPLEMENTAL_FIELDS = [
-    "interest_expense", "accounts_payable", "accounts_receivable",
-    "cogs", "long_term_debt", "stockholders_equity",
+    "interest_expense",
+    "accounts_payable",
+    "accounts_receivable",
+    "cogs",
+    "long_term_debt",
+    "stockholders_equity",
 ]
 
 
@@ -69,27 +77,36 @@ def audit_dataframe(df: pd.DataFrame) -> dict:
         neg_assets = df[df["total_assets"] < 0]
         if not neg_assets.empty:
             for _, row in neg_assets.iterrows():
-                anomalies.append({
-                    "ticker": row["ticker"], "year": row["year"],
-                    "issue": "Negative total_assets",
-                    "value": row["total_assets"],
-                })
+                anomalies.append(
+                    {
+                        "ticker": row["ticker"],
+                        "year": row["year"],
+                        "issue": "Negative total_assets",
+                        "value": row["total_assets"],
+                    }
+                )
     if "revenue" in df.columns:
         zero_rev = df[(df["revenue"] == 0) | (df["revenue"].isna())]
         for _, row in zero_rev.iterrows():
-            anomalies.append({
-                "ticker": row["ticker"], "year": row["year"],
-                "issue": "Zero or missing revenue",
-                "value": row.get("revenue", float("nan")),
-            })
+            anomalies.append(
+                {
+                    "ticker": row["ticker"],
+                    "year": row["year"],
+                    "issue": "Zero or missing revenue",
+                    "value": row.get("revenue", float("nan")),
+                }
+            )
     if "current_ratio" in df.columns:
         extreme_cr = df[df["current_ratio"] > 20]
         for _, row in extreme_cr.iterrows():
-            anomalies.append({
-                "ticker": row["ticker"], "year": row["year"],
-                "issue": "Extreme current ratio (>20)",
-                "value": row["current_ratio"],
-            })
+            anomalies.append(
+                {
+                    "ticker": row["ticker"],
+                    "year": row["year"],
+                    "issue": "Extreme current ratio (>20)",
+                    "value": row["current_ratio"],
+                }
+            )
     results["anomalies"] = anomalies
 
     # 4. Z-Score quality
@@ -101,13 +118,17 @@ def audit_dataframe(df: pd.DataFrame) -> dict:
             "computed": z_total - z_missing,
             "missing": z_missing,
             "pct_missing": round(z_missing / z_total * 100, 1),
-            "zone_distribution": z_dist.to_dict() if hasattr(z_dist, "to_dict") else z_dist,
+            "zone_distribution": z_dist.to_dict()
+            if hasattr(z_dist, "to_dict")
+            else z_dist,
         }
 
     return results
 
 
-def generate_report(df: pd.DataFrame, config: dict, output_path: str = "data_quality_report.md") -> str:
+def generate_report(
+    df: pd.DataFrame, config: dict, output_path: str = "data_quality_report.md"
+) -> str:
     """
     Generate a Markdown data quality report.
 
@@ -130,9 +151,11 @@ def generate_report(df: pd.DataFrame, config: dict, output_path: str = "data_qua
     lines.append("# Data Quality Report")
     lines.append(f"\nGenerated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     lines.append(f"\nSector: **{config.get('sector', 'N/A')}**")
-    lines.append(f"\nFirms: {df['ticker'].nunique()}  |  "
-                 f"Firm-years: {len(df)}  |  "
-                 f"Years: {sorted(df['year'].unique().tolist())}")
+    lines.append(
+        f"\nFirms: {df['ticker'].nunique()}  |  "
+        f"Firm-years: {len(df)}  |  "
+        f"Years: {sorted(df['year'].unique().tolist())}"
+    )
 
     lines.append("\n---\n")
     lines.append("## 1. Field Completeness\n")
@@ -140,7 +163,7 @@ def generate_report(df: pd.DataFrame, config: dict, output_path: str = "data_qua
     lines.append("|-------|-----------|")
     for field, rate in audit["missing_by_field"].items():
         flag = " ⚠️" if rate > 0.3 else ""
-        lines.append(f"| {field} | {rate*100:.1f}%{flag} |")
+        lines.append(f"| {field} | {rate * 100:.1f}%{flag} |")
 
     lines.append("\n---\n")
     lines.append("## 2. Firm-Level Completeness\n")
@@ -153,7 +176,7 @@ def generate_report(df: pd.DataFrame, config: dict, output_path: str = "data_qua
             status = "🟡 CAUTION — elevated missingness"
         else:
             status = "🟢 OK"
-        lines.append(f"| {ticker} | {rate*100:.1f}% | {status} |")
+        lines.append(f"| {ticker} | {rate * 100:.1f}% | {status} |")
 
     lines.append("\n---\n")
     lines.append("## 3. Anomaly Flags\n")
@@ -162,7 +185,9 @@ def generate_report(df: pd.DataFrame, config: dict, output_path: str = "data_qua
         lines.append("| Ticker | Year | Issue | Value |")
         lines.append("|--------|------|-------|-------|")
         for a in anomalies:
-            lines.append(f"| {a['ticker']} | {a['year']} | {a['issue']} | {a['value']} |")
+            lines.append(
+                f"| {a['ticker']} | {a['year']} | {a['issue']} | {a['value']} |"
+            )
     else:
         lines.append("No anomalies detected.")
 
@@ -170,18 +195,28 @@ def generate_report(df: pd.DataFrame, config: dict, output_path: str = "data_qua
     lines.append("## 4. Z-Score Coverage\n")
     zq = audit.get("z_score_quality", {})
     if zq:
-        lines.append(f"- Computed: **{zq['computed']}** of {zq['computed'] + zq['missing']} firm-years")
+        lines.append(
+            f"- Computed: **{zq['computed']}** of {zq['computed'] + zq['missing']} firm-years"
+        )
         lines.append(f"- Missing: **{zq['pct_missing']}%**")
         lines.append(f"\nZone distribution: {zq.get('zone_distribution', {})}")
 
     lines.append("\n---\n")
     lines.append("## 5. Methodology Notes\n")
-    lines.append("- All financial data sourced from SEC EDGAR XBRL API (10-K annual filings).")
-    lines.append("- Market cap sourced from yfinance (year-end close × shares outstanding).")
-    lines.append("- Supply chain edges sourced from documented 10-K disclosures; "
-                 "inferred edges tagged `inferred_sector_structure`.")
-    lines.append("- Missing values are **never silently imputed**. "
-                 "Z-scores with >2 missing components return NaN.")
+    lines.append(
+        "- All financial data sourced from SEC EDGAR XBRL API (10-K annual filings)."
+    )
+    lines.append(
+        "- Market cap sourced from yfinance (year-end close × shares outstanding)."
+    )
+    lines.append(
+        "- Supply chain edges sourced from documented 10-K disclosures; "
+        "inferred edges tagged `inferred_sector_structure`."
+    )
+    lines.append(
+        "- Missing values are **never silently imputed**. "
+        "Z-scores with >2 missing components return NaN."
+    )
     lines.append("- All transformations are code-reproducible (no manual steps).")
 
     report = "\n".join(lines)

@@ -24,6 +24,7 @@ sys.path.insert(0, str(ROOT))
 def cmd_seed(_args):
     from scripts.seed_demo_data import seed_all
     import yaml
+
     with open(ROOT / "config.yaml") as f:
         config = yaml.safe_load(f)
     seed_all(config)
@@ -31,31 +32,37 @@ def cmd_seed(_args):
 
 def cmd_fetch(_args):
     from data_engineering.sec_scraper import run
+
     run()
 
 
 def cmd_macro(_args):
     from data_engineering.macro_fetcher import run
+
     run()
 
 
 def cmd_edges(_args):
     from data_engineering.supply_chain_builder import run
+
     run()
 
 
 def cmd_scores(_args):
     from data_engineering.ratio_calculator import run
+
     run()
 
 
 def cmd_quality(_args):
     from data_engineering.data_quality_report import run
+
     run()
 
 
 def cmd_dashboard(_args):
     import subprocess
+
     subprocess.run(["streamlit", "run", str(ROOT / "dashboard" / "app.py")])
 
 
@@ -89,7 +96,9 @@ def main():
         parser.print_help()
         return
 
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(levelname)s %(name)s: %(message)s"
+    )
 
     commands = {
         "seed": cmd_seed,

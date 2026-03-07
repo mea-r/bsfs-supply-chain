@@ -22,8 +22,9 @@ from utils.config import load_config
 logger = logging.getLogger(__name__)
 
 
-def _fetch_fred_series(series_id: str, api_key: str,
-                       start: str = "2018-01-01", end: str = "2024-12-31") -> pd.DataFrame:
+def _fetch_fred_series(
+    series_id: str, api_key: str, start: str = "2018-01-01", end: str = "2024-12-31"
+) -> pd.DataFrame:
     """
     Fetch a single FRED series via the FRED API.
 
@@ -63,11 +64,13 @@ def _fetch_fred_series(series_id: str, api_key: str,
         val = obs.get("value", ".")
         if val == ".":
             continue
-        records.append({
-            "date": obs["date"],
-            "value": float(val),
-            "series_id": series_id,
-        })
+        records.append(
+            {
+                "date": obs["date"],
+                "value": float(val),
+                "series_id": series_id,
+            }
+        )
     return pd.DataFrame(records)
 
 
@@ -114,7 +117,7 @@ def _generate_bundled_macro_data(fred_series: dict) -> pd.DataFrame:
 
         # HY Credit Spread (%, ~3.5% normal, spike to ~10% in COVID, ~4.5% in 2022)
         if year == 2020 and 3 <= month <= 5:
-            hy = 3.5 + (10 - 3.5) * np.exp(-(month - 3.5) ** 2 / 0.8)
+            hy = 3.5 + (10 - 3.5) * np.exp(-((month - 3.5) ** 2) / 0.8)
         elif year == 2022:
             hy = 4.0 + month * 0.05
         else:
@@ -122,10 +125,26 @@ def _generate_bundled_macro_data(fred_series: dict) -> pd.DataFrame:
         hy = round(max(2.0, hy), 2)
 
         date_str = date.strftime("%Y-%m-%d")
-        records.append({"date": date_str, "value": ff, "series_id": fred_series["fed_funds_rate"]})
-        records.append({"date": date_str, "value": cpi, "series_id": fred_series["cpi"]})
-        records.append({"date": date_str, "value": ip, "series_id": fred_series["industrial_production"]})
-        records.append({"date": date_str, "value": hy, "series_id": fred_series["credit_spread_hy"]})
+        records.append(
+            {"date": date_str, "value": ff, "series_id": fred_series["fed_funds_rate"]}
+        )
+        records.append(
+            {"date": date_str, "value": cpi, "series_id": fred_series["cpi"]}
+        )
+        records.append(
+            {
+                "date": date_str,
+                "value": ip,
+                "series_id": fred_series["industrial_production"],
+            }
+        )
+        records.append(
+            {
+                "date": date_str,
+                "value": hy,
+                "series_id": fred_series["credit_spread_hy"],
+            }
+        )
 
     return pd.DataFrame(records)
 

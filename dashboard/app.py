@@ -11,14 +11,11 @@ Layout:
 """
 
 import sys
-import os
 import logging
 from pathlib import Path
 
 import streamlit as st
 import pandas as pd
-import numpy as np
-import plotly.graph_objects as go
 import yaml
 
 # Ensure project root is in path
@@ -91,9 +88,7 @@ def load_edges() -> pd.DataFrame:
     """Load supply chain edges from disk."""
     path = ROOT / "data" / "supply_chain" / "edges.csv"
     if not path.exists():
-        st.error(
-            "❌ edges.csv not found. Run `make supply_chain` first."
-        )
+        st.error("❌ edges.csv not found. Run `make supply_chain` first.")
         st.stop()
     return pd.read_csv(path)
 
@@ -102,6 +97,7 @@ def load_edges() -> pd.DataFrame:
 def get_engine(year: int):
     """Build PropagationEngine (cached per year)."""
     from propagation.propagation_engine import PropagationEngine
+
     scores_df = load_scores()
     edges_df = load_edges()
     return PropagationEngine(scores_df, edges_df, config, year)
@@ -142,12 +138,18 @@ magnitude = 0.0
 focal_firm = None
 
 if selected_scenario == "S1":
-    magnitude = st.sidebar.slider(
-        "Interest Expense Increase (%)",
-        min_value=5, max_value=200, value=40, step=5,
-        help="How much does interest expense increase? "
-             "A 40% increase mimics the 2022 Fed rate hike cycle effect on floating-rate debt."
-    ) / 100.0
+    magnitude = (
+        st.sidebar.slider(
+            "Interest Expense Increase (%)",
+            min_value=5,
+            max_value=200,
+            value=40,
+            step=5,
+            help="How much does interest expense increase? "
+            "A 40% increase mimics the 2022 Fed rate hike cycle effect on floating-rate debt.",
+        )
+        / 100.0
+    )
     st.sidebar.info(
         "**Economic interpretation:** A 40% jump in interest expense mirrors the impact "
         "of the 2022 Fed Funds rate increase (0.25% → 5.25%) on firms with floating-rate debt. "
@@ -155,12 +157,18 @@ if selected_scenario == "S1":
     )
 
 elif selected_scenario == "S2":
-    magnitude = st.sidebar.slider(
-        "OEM Revenue Reduction (%)",
-        min_value=5, max_value=80, value=25, step=5,
-        help="By how much does Tier-1 buyer revenue fall? "
-             "25% mirrors COVID-19 auto plant shutdowns (2020 Q2)."
-    ) / 100.0
+    magnitude = (
+        st.sidebar.slider(
+            "OEM Revenue Reduction (%)",
+            min_value=5,
+            max_value=80,
+            value=25,
+            step=5,
+            help="By how much does Tier-1 buyer revenue fall? "
+            "25% mirrors COVID-19 auto plant shutdowns (2020 Q2).",
+        )
+        / 100.0
+    )
     st.sidebar.info(
         "**Economic interpretation:** A 25% demand shock at the OEM level "
         "mirrors COVID-19 production halts or a semiconductor shortage. "
@@ -176,7 +184,10 @@ elif selected_scenario == "S3":
     )
     magnitude = st.sidebar.slider(
         "Distress Severity",
-        min_value=0.1, max_value=1.0, value=1.0, step=0.1,
+        min_value=0.1,
+        max_value=1.0,
+        value=1.0,
+        step=0.1,
         help="1.0 = full bankruptcy; 0.5 = severe but survivable distress.",
     )
     st.sidebar.info(
@@ -219,6 +230,7 @@ engine = st.session_state["engine"]
 
 if run_simulation and selected_scenario:
     import copy
+
     st.session_state["before_states"] = copy.deepcopy(engine.node_states)
     engine.reset()
     updated_states = engine.apply_shock(
@@ -255,10 +267,15 @@ st.markdown("---")
 # ------------------------------------------------------------------
 # Tabs
 # ------------------------------------------------------------------
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🌐 Network View", "🏢 Firm Detail", "📊 Risk Summary",
-    "📋 Case Studies", "💰 Trade Credit Exposure",
-])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    [
+        "🌐 Network View",
+        "🏢 Firm Detail",
+        "📊 Risk Summary",
+        "📋 Case Studies",
+        "💰 Trade Credit Exposure",
+    ]
+)
 
 # ==================================================================
 # TAB 1: Network View
@@ -270,7 +287,11 @@ with tab1:
     with col1:
         # Highlight path for S3
         highlight_path = []
-        if st.session_state.get("shock_applied") and selected_scenario == "S3" and focal_firm:
+        if (
+            st.session_state.get("shock_applied")
+            and selected_scenario == "S3"
+            and focal_firm
+        ):
             try:
                 path_data = engine.get_stress_path(focal_firm)
                 highlight_path = [p["firm"] for p in path_data]
@@ -295,13 +316,19 @@ with tab1:
         if st.session_state.get("shock_applied"):
             st.markdown("---")
             st.markdown("### After Shock")
-            zone_counts = pd.Series({
-                n: s.get("credit_zone", "unknown")
-                for n, s in node_states.items()
-            }).value_counts()
+            zone_counts = pd.Series(
+                {n: s.get("credit_zone", "unknown") for n, s in node_states.items()}
+            ).value_counts()
             for zone, count in zone_counts.items():
-                color_map = {"safe": "🟢", "grey": "🟡", "distress": "🔴", "unknown": "⚫"}
-                st.markdown(f"{color_map.get(zone, '⚫')} **{zone.capitalize()}**: {count} firms")
+                color_map = {
+                    "safe": "🟢",
+                    "grey": "🟡",
+                    "distress": "🔴",
+                    "unknown": "⚫",
+                }
+                st.markdown(
+                    f"{color_map.get(zone, '⚫')} **{zone.capitalize()}**: {count} firms"
+                )
 
 # ==================================================================
 # TAB 2: Firm Detail
@@ -356,7 +383,9 @@ with tab2:
             if upstream.empty:
                 st.info("No upstream suppliers in dataset.")
             else:
-                up_display = upstream[["source", "weight", "relationship_type", "assumption_basis"]].copy()
+                up_display = upstream[
+                    ["source", "weight", "relationship_type", "assumption_basis"]
+                ].copy()
                 up_display.columns = ["Supplier", "Weight", "Type", "Basis"]
                 # Add current zone for each supplier
                 zones = []
@@ -371,7 +400,9 @@ with tab2:
             if downstream.empty:
                 st.info("No downstream buyers in dataset.")
             else:
-                dn_display = downstream[["target", "weight", "relationship_type", "assumption_basis"]].copy()
+                dn_display = downstream[
+                    ["target", "weight", "relationship_type", "assumption_basis"]
+                ].copy()
                 dn_display.columns = ["Buyer", "Weight", "Type", "Basis"]
                 zones = []
                 for buyer in dn_display["Buyer"]:
@@ -381,24 +412,35 @@ with tab2:
                 st.dataframe(dn_display, use_container_width=True, hide_index=True)
 
         # Shock impact table
-        if st.session_state.get("shock_applied") and st.session_state.get("before_states"):
+        if st.session_state.get("shock_applied") and st.session_state.get(
+            "before_states"
+        ):
             st.markdown("#### Shock Impact")
             before_state = st.session_state["before_states"].get(ticker, {})
             after_state = node_states.get(ticker, {})
 
-            metrics = ["z_score", "current_ratio", "interest_coverage_ratio", "stress_score"]
+            metrics = [
+                "z_score",
+                "current_ratio",
+                "interest_coverage_ratio",
+                "stress_score",
+            ]
             impact_rows = []
             for m in metrics:
                 b = before_state.get(m, float("nan"))
                 a = after_state.get(m, float("nan"))
                 delta = (a - b) if not (pd.isna(a) or pd.isna(b)) else float("nan")
-                impact_rows.append({
-                    "Metric": m.replace("_", " ").title(),
-                    "Before": f"{b:.3f}" if not pd.isna(b) else "N/A",
-                    "After": f"{a:.3f}" if not pd.isna(a) else "N/A",
-                    "Change": f"{delta:+.3f}" if not pd.isna(delta) else "N/A",
-                })
-            st.dataframe(pd.DataFrame(impact_rows), use_container_width=True, hide_index=True)
+                impact_rows.append(
+                    {
+                        "Metric": m.replace("_", " ").title(),
+                        "Before": f"{b:.3f}" if not pd.isna(b) else "N/A",
+                        "After": f"{a:.3f}" if not pd.isna(a) else "N/A",
+                        "Change": f"{delta:+.3f}" if not pd.isna(delta) else "N/A",
+                    }
+                )
+            st.dataframe(
+                pd.DataFrame(impact_rows), use_container_width=True, hide_index=True
+            )
 
 # ==================================================================
 # TAB 3: Risk Summary
@@ -418,17 +460,23 @@ with tab3:
         st.markdown("**Before Shock**")
         before_counts = summary.get("before", {})
         if not before_counts:
-            before_counts = pd.Series({
-                n: s.get("credit_zone", "unknown")
-                for n, s in before_states.items()
-            }).value_counts().to_dict()
+            before_counts = (
+                pd.Series(
+                    {
+                        n: s.get("credit_zone", "unknown")
+                        for n, s in before_states.items()
+                    }
+                )
+                .value_counts()
+                .to_dict()
+            )
         total = sum(before_counts.values()) or 1
         for zone in ["safe", "grey", "distress", "unknown"]:
             cnt = before_counts.get(zone, 0)
             color_map2 = {"safe": "🟢", "grey": "🟡", "distress": "🔴", "unknown": "⚫"}
             st.metric(
                 label=f"{color_map2.get(zone, '⚫')} {zone.capitalize()}",
-                value=f"{cnt} firms ({cnt/total*100:.0f}%)",
+                value=f"{cnt} firms ({cnt / total * 100:.0f}%)",
             )
 
     with col_a:
@@ -442,7 +490,7 @@ with tab3:
             color_map2 = {"safe": "🟢", "grey": "🟡", "distress": "🔴", "unknown": "⚫"}
             st.metric(
                 label=f"{color_map2.get(zone, '⚫')} {zone.capitalize()}",
-                value=f"{cnt_a} firms ({cnt_a/total_after*100:.0f}%)",
+                value=f"{cnt_a} firms ({cnt_a / total_after * 100:.0f}%)",
                 delta=f"{delta:+d} firms" if delta != 0 else "no change",
                 delta_color="inverse" if zone in ("distress", "grey") else "normal",
             )
@@ -461,16 +509,27 @@ with tab3:
         cp_df = pd.DataFrame(chokepoints)
         # Style the dataframe
         display_cols = [
-            "ticker", "name", "in_degree", "credit_zone", "z_score",
-            "stress_score", "betweenness_centrality", "risk_score", "is_chokepoint"
+            "ticker",
+            "name",
+            "in_degree",
+            "credit_zone",
+            "z_score",
+            "stress_score",
+            "betweenness_centrality",
+            "risk_score",
+            "is_chokepoint",
         ]
         available_display = [c for c in display_cols if c in cp_df.columns]
         cp_display = cp_df[available_display].copy()
         cp_display.columns = [c.replace("_", " ").title() for c in available_display]
 
         def style_zone(val):
-            colors_map = {"safe": "#d5f5e3", "grey": "#fdebd0",
-                          "distress": "#fadbd8", "unknown": "#f2f3f4"}
+            colors_map = {
+                "safe": "#d5f5e3",
+                "grey": "#fdebd0",
+                "distress": "#fadbd8",
+                "unknown": "#f2f3f4",
+            }
             return f"background-color: {colors_map.get(str(val).lower(), 'white')}"
 
         st.dataframe(cp_display, use_container_width=True, hide_index=True)
@@ -483,7 +542,9 @@ with tab3:
                 + ", ".join(f"**{cp['ticker']}**" for cp in high_risk)
             )
         else:
-            st.success("✅ No critical chokepoints identified under current conditions.")
+            st.success(
+                "✅ No critical chokepoints identified under current conditions."
+            )
 
     st.markdown("---")
 
@@ -498,8 +559,7 @@ with tab3:
     # Filter to non-zero rows/cols for readability
     nonzero_mask = (heatmap_df != 0).any(axis=1) | (heatmap_df != 0).any(axis=0)
     heatmap_filtered = heatmap_df.loc[
-        (heatmap_df != 0).any(axis=1),
-        (heatmap_df != 0).any(axis=0)
+        (heatmap_df != 0).any(axis=1), (heatmap_df != 0).any(axis=0)
     ]
 
     if heatmap_filtered.empty:
@@ -511,7 +571,11 @@ with tab3:
     st.markdown("---")
 
     # --- Stress Path (for S3) ---
-    if st.session_state.get("shock_applied") and selected_scenario == "S3" and focal_firm:
+    if (
+        st.session_state.get("shock_applied")
+        and selected_scenario == "S3"
+        and focal_firm
+    ):
         st.markdown(f"### 📍 Stress Propagation Path from {focal_firm}")
         try:
             path_data = engine.get_stress_path(focal_firm)
@@ -534,14 +598,21 @@ with tab3:
         pct_dist = (year_data["credit_zone"] == "distress").mean() * 100
         st.metric("% in Distress", f"{pct_dist:.0f}%")
     with col4:
-        avg_cr = year_data["current_ratio"].mean() if "current_ratio" in year_data.columns else float("nan")
-        st.metric("Avg Current Ratio", f"{avg_cr:.2f}" if not pd.isna(avg_cr) else "N/A")
+        avg_cr = (
+            year_data["current_ratio"].mean()
+            if "current_ratio" in year_data.columns
+            else float("nan")
+        )
+        st.metric(
+            "Avg Current Ratio", f"{avg_cr:.2f}" if not pd.isna(avg_cr) else "N/A"
+        )
 
     # Macro time series chart
     if not macro_df.empty:
         st.markdown("---")
         st.markdown("### 📈 Macroeconomic Time Series")
         from dashboard.graph_utils import build_macro_chart
+
         fig_macro = build_macro_chart(macro_df, config)
         st.plotly_chart(fig_macro, use_container_width=True, key="macro_chart")
 
@@ -624,6 +695,7 @@ higher interest expenses.
 
     if st.button("▶ Run This Case Study", key="run_case_study", type="primary"):
         import copy
+
         engine_case = get_engine(selected_year)
         before = copy.deepcopy(engine_case.node_states)
         engine_case.apply_shock(
@@ -652,23 +724,28 @@ higher interest expenses.
             b_z = b.get("z_score", float("nan"))
             a_z = a.get("z_score", float("nan"))
             delta = (a_z - b_z) if not (pd.isna(a_z) or pd.isna(b_z)) else float("nan")
-            impact_rows.append({
-                "Firm": ticker,
-                "Zone Before": b.get("credit_zone", "unknown"),
-                "Z Before": f"{b_z:.2f}" if not pd.isna(b_z) else "N/A",
-                "Zone After": a.get("credit_zone", "unknown"),
-                "Z After": f"{a_z:.2f}" if not pd.isna(a_z) else "N/A",
-                "ΔZ": f"{delta:+.2f}" if not pd.isna(delta) else "N/A",
-                "Stress": f"{a.get('stress_score', 0):.3f}",
-            })
-        st.dataframe(pd.DataFrame(impact_rows), use_container_width=True, hide_index=True)
+            impact_rows.append(
+                {
+                    "Firm": ticker,
+                    "Zone Before": b.get("credit_zone", "unknown"),
+                    "Z Before": f"{b_z:.2f}" if not pd.isna(b_z) else "N/A",
+                    "Zone After": a.get("credit_zone", "unknown"),
+                    "Z After": f"{a_z:.2f}" if not pd.isna(a_z) else "N/A",
+                    "ΔZ": f"{delta:+.2f}" if not pd.isna(delta) else "N/A",
+                    "Stress": f"{a.get('stress_score', 0):.3f}",
+                }
+            )
+        st.dataframe(
+            pd.DataFrame(impact_rows), use_container_width=True, hide_index=True
+        )
 
 # ==================================================================
 # TAB 5: Trade Credit Exposure
 # ==================================================================
 with tab5:
     from risk_framework.trade_credit import (
-        compute_trade_credit_exposure, portfolio_summary
+        compute_trade_credit_exposure,
+        portfolio_summary,
     )
 
     st.markdown("### 💰 Trade Credit Exposure Analysis")
@@ -704,8 +781,14 @@ with tab5:
     # Firm-level exposure table
     st.markdown("#### Firm-Level Exposure")
     display_cols = [
-        "ticker", "name", "credit_zone", "z_score", "pd_estimate",
-        "accounts_receivable", "ar_at_risk", "expected_loss",
+        "ticker",
+        "name",
+        "credit_zone",
+        "z_score",
+        "pd_estimate",
+        "accounts_receivable",
+        "ar_at_risk",
+        "expected_loss",
     ]
     available_cols = [c for c in display_cols if c in exposure_df.columns]
     exp_display = exposure_df[available_cols].copy()

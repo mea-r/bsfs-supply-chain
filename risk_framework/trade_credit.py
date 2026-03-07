@@ -18,7 +18,6 @@ Economic framework:
 """
 
 import pandas as pd
-import numpy as np
 
 
 # PD mapping from Z-Score (piecewise linear)
@@ -90,7 +89,6 @@ def compute_trade_credit_exposure(
         z = state.get("z_score", float("nan"))
         ar = state.get("accounts_receivable", float("nan"))
         ap = state.get("accounts_payable", float("nan"))
-        rev = state.get("revenue", float("nan"))
         zone = state.get("credit_zone", "unknown")
         stress = state.get("stress_score", 0.0)
         pd_est = estimate_pd(z)
@@ -105,24 +103,32 @@ def compute_trade_credit_exposure(
         n_buyers = len(edges_df[edges_df["source"] == ticker])
         n_suppliers = len(edges_df[edges_df["target"] == ticker])
 
-        rows.append({
-            "ticker": ticker,
-            "name": state.get("name", ticker),
-            "credit_zone": zone,
-            "z_score": round(z, 4) if not pd.isna(z) else float("nan"),
-            "stress_score": round(stress, 4),
-            "pd_estimate": round(pd_est, 4),
-            "accounts_receivable": ar,
-            "ar_at_risk": round(ar_at_risk, 0) if not pd.isna(ar_at_risk) else float("nan"),
-            "expected_loss": round(expected_loss, 0) if not pd.isna(expected_loss) else float("nan"),
-            "lgd": lgd,
-            "accounts_payable": ap,
-            "n_buyers": n_buyers,
-            "n_suppliers": n_suppliers,
-        })
+        rows.append(
+            {
+                "ticker": ticker,
+                "name": state.get("name", ticker),
+                "credit_zone": zone,
+                "z_score": round(z, 4) if not pd.isna(z) else float("nan"),
+                "stress_score": round(stress, 4),
+                "pd_estimate": round(pd_est, 4),
+                "accounts_receivable": ar,
+                "ar_at_risk": round(ar_at_risk, 0)
+                if not pd.isna(ar_at_risk)
+                else float("nan"),
+                "expected_loss": round(expected_loss, 0)
+                if not pd.isna(expected_loss)
+                else float("nan"),
+                "lgd": lgd,
+                "accounts_payable": ap,
+                "n_buyers": n_buyers,
+                "n_suppliers": n_suppliers,
+            }
+        )
 
     df = pd.DataFrame(rows)
-    return df.sort_values("expected_loss", ascending=False, na_position="last").reset_index(drop=True)
+    return df.sort_values(
+        "expected_loss", ascending=False, na_position="last"
+    ).reset_index(drop=True)
 
 
 def portfolio_summary(exposure_df: pd.DataFrame) -> dict:
@@ -150,7 +156,9 @@ def portfolio_summary(exposure_df: pd.DataFrame) -> dict:
         "total_accounts_receivable": total_ar,
         "total_ar_at_risk": total_ar_at_risk,
         "total_expected_loss": total_expected_loss,
-        "pct_ar_at_risk": round(total_ar_at_risk / total_ar * 100, 2) if total_ar > 0 else 0,
+        "pct_ar_at_risk": round(total_ar_at_risk / total_ar * 100, 2)
+        if total_ar > 0
+        else 0,
         "avg_pd": round(avg_pd, 4),
         "n_distressed_firms": int(n_distressed),
         "n_grey_zone_firms": int(n_grey),

@@ -12,7 +12,6 @@ engine to query firm-year risk states without re-computing.
 
 import logging
 import pandas as pd
-import numpy as np
 from pathlib import Path
 
 from utils.config import load_config
@@ -35,8 +34,9 @@ class ScoreStore:
         Loaded config.yaml.
     """
 
-    def __init__(self, scores_csv: str = "risk_framework/scores.csv",
-                 config: dict = None):
+    def __init__(
+        self, scores_csv: str = "risk_framework/scores.csv", config: dict = None
+    ):
         self.config = config or load_config()
         self._df = pd.read_csv(scores_csv)
         self._df["year"] = self._df["year"].astype(int)
@@ -91,7 +91,9 @@ class ScoreStore:
     def get_z_score(self, ticker: str, year: int) -> float:
         """Return Z-score for a specific firm-year."""
         row = self.get_firm_year(ticker, year)
-        return float(row.get("z_score", float("nan"))) if not row.empty else float("nan")
+        return (
+            float(row.get("z_score", float("nan"))) if not row.empty else float("nan")
+        )
 
     def get_credit_zone(self, ticker: str, year: int) -> str:
         """Return credit zone for a specific firm-year."""
@@ -148,6 +150,7 @@ def run(config_path: str = "config.yaml") -> "ScoreStore":
     """
     # Lazy import to avoid circular dependency with data_engineering
     import sys
+
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from data_engineering.ratio_calculator import run as compute_ratios_run
 
