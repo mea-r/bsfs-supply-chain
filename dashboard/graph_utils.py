@@ -10,14 +10,6 @@ import pandas as pd
 import numpy as np
 import networkx as nx
 import plotly.graph_objects as go
-import yaml
-
-
-def load_config(config_path: str = "config.yaml") -> dict:
-    with open(config_path, "r") as f:
-        return yaml.safe_load(f)
-
-
 ZONE_COLORS = {
     "safe": "#2ecc71",
     "grey": "#f39c12",
@@ -64,11 +56,23 @@ def build_plotly_graph(
         x0, y0 = pos[src]
         x1, y1 = pos[tgt]
         w = data.get("weight", 0.5)
+
+        # Color edges by source node stress (green → yellow → red)
+        src_state = node_states.get(src, {})
+        src_stress = src_state.get("stress_score", 0.0)
+        src_zone = src_state.get("credit_zone", "safe")
+        if src_stress > 0.1 or src_zone == "distress":
+            edge_color = ZONE_COLORS.get("distress", "#e74c3c")
+        elif src_stress > 0.01 or src_zone == "grey":
+            edge_color = ZONE_COLORS.get("grey", "#f39c12")
+        else:
+            edge_color = "#bdc3c7"
+
         edge_traces.append(go.Scatter(
             x=[x0, x1, None], y=[y0, y1, None],
             mode="lines",
             line=dict(width=max(1, w * config["dashboard"]["edge_weight_scale"]),
-                      color="#bdc3c7"),
+                      color=edge_color),
             hoverinfo="none",
             showlegend=False,
         ))
@@ -243,6 +247,60 @@ def build_z_score_timeseries(scores_df: pd.DataFrame, tickers: list) -> go.Figur
         legend_title="Firm",
         hovermode="x unified",
         plot_bgcolor="#f8f9fa",
+    )
+    return fig
+
+
+def build_macro_chart(macro_df: pd.DataFrame, config: dict) -> go.Figure:
+    """
+    Build a multi-panel chart of macroeconomic time series.
+
+    Parameters
+    ----------
+    macro_df : pd.DataFrame
+        Macro data with columns: date, value, series_id, series_name.
+    config : dict
+        Loaded config.yaml.
+
+    Returns
+    -------
+    go.Figure
+    """
+    from plotly.subplots import make_subplots
+
+    fred_series = config["data"]["fred_series"]
+    series_list = list(fred_series.items())
+    n = len(series_list)
+
+    fig = make_subplots(
+        rows=n, cols=1,
+        shared_xaxes=True,
+        subplot_titles=[name.replace("_", " ").title() for name, _ in series_list],
+        vertical_spacing=0.08,
+    )
+
+    colors = ["#3498db", "#e74c3c", "#2ecc71", "#f39c12"]
+    for i, (name, series_id) in enumerate(series_list):
+        series_data = macro_df[macro_df["series_id"] == series_id].sort_values("date")
+        if series_data.empty:
+            continue
+        fig.add_trace(
+            go.Scatter(
+                x=series_data["date"],
+                y=series_data["value"],
+                mode="lines",
+                name=name.replace("_", " ").title(),
+                line=dict(color=colors[i % len(colors)], width=2),
+                showlegend=False,
+            ),
+            row=i + 1, col=1,
+        )
+
+    fig.update_layout(
+        height=200 * n,
+        title="Macroeconomic Indicators (FRED)",
+        plot_bgcolor="#f8f9fa",
+        margin=dict(l=60, r=20, t=60, b=40),
     )
     return fig
 

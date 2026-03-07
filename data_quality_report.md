@@ -1,10 +1,10 @@
 # Data Quality Report
 
-Generated: 2026-03-06 18:42:43
+Generated: 2026-03-07 01:54:06
 
 Sector: **automotive**
 
-Firms: 11  |  Firm-years: 53  |  Years: [2019, 2020, 2021, 2022, 2023]
+Firms: 8  |  Firm-years: 40  |  Years: [2019, 2020, 2021, 2022, 2023]
 
 ---
 
@@ -12,20 +12,20 @@ Firms: 11  |  Firm-years: 53  |  Years: [2019, 2020, 2021, 2022, 2023]
 
 | Field | Missing % |
 |-------|-----------|
-| total_assets | 0.0% |
-| current_assets | 0.0% |
-| current_liabilities | 0.0% |
-| retained_earnings | 0.0% |
-| ebit | 0.0% |
-| market_cap | 0.0% |
-| revenue | 0.0% |
-| total_liabilities | 0.0% |
-| interest_expense | 0.0% |
-| accounts_payable | 0.0% |
-| accounts_receivable | 0.0% |
-| cogs | 0.0% |
-| long_term_debt | 0.0% |
-| stockholders_equity | 0.0% |
+| market_cap | 100.0% ⚠️ |
+| long_term_debt | 67.5% ⚠️ |
+| total_liabilities | 50.0% ⚠️ |
+| accounts_payable | 37.5% ⚠️ |
+| interest_expense | 32.5% ⚠️ |
+| cogs | 30.0% |
+| ebit | 25.0% |
+| accounts_receivable | 25.0% |
+| revenue | 20.0% |
+| total_assets | 12.5% |
+| current_assets | 12.5% |
+| current_liabilities | 12.5% |
+| retained_earnings | 12.5% |
+| stockholders_equity | 12.5% |
 
 ---
 
@@ -33,32 +33,38 @@ Firms: 11  |  Firm-years: 53  |  Years: [2019, 2020, 2021, 2022, 2023]
 
 | Ticker | Missing % | Status |
 |--------|-----------|--------|
-| ADNT | 0.0% | 🟢 OK |
-| APTV | 0.0% | 🟢 OK |
-| BWA | 0.0% | 🟢 OK |
-| DAN | 0.0% | 🟢 OK |
-| F | 0.0% | 🟢 OK |
-| GM | 0.0% | 🟢 OK |
-| LEA | 0.0% | 🟢 OK |
-| MGA | 0.0% | 🟢 OK |
-| MOD | 0.0% | 🟢 OK |
-| STLA | 0.0% | 🟢 OK |
-| TM | 0.0% | 🟢 OK |
+| TM | 100.0% | 🔴 UNRELIABLE — >50% data missing |
+| ADNT | 50.0% | 🟡 CAUTION — elevated missingness |
+| GM | 21.4% | 🟢 OK |
+| STLA | 21.4% | 🟢 OK |
+| LEA | 20.0% | 🟢 OK |
+| F | 18.6% | 🟢 OK |
+| DAN | 14.3% | 🟢 OK |
+| APTV | 11.4% | 🟢 OK |
 
 ---
 
 ## 3. Anomaly Flags
 
-No anomalies detected.
+| Ticker | Year | Issue | Value |
+|--------|------|-------|-------|
+| TM | 2019 | Zero or missing revenue | nan |
+| TM | 2020 | Zero or missing revenue | nan |
+| TM | 2021 | Zero or missing revenue | nan |
+| TM | 2022 | Zero or missing revenue | nan |
+| TM | 2023 | Zero or missing revenue | nan |
+| APTV | 2019 | Zero or missing revenue | nan |
+| APTV | 2020 | Zero or missing revenue | nan |
+| APTV | 2021 | Zero or missing revenue | nan |
 
 ---
 
 ## 4. Z-Score Coverage
 
-- Computed: **53** of 53 firm-years
-- Missing: **0.0%**
+- Computed: **35** of 40 firm-years
+- Missing: **12.5%**
 
-Zone distribution: {'distress': 21, 'grey': 20, 'safe': 12}
+Zone distribution: {'distress': 30, 'grey': 5, 'unknown': 5}
 
 ---
 

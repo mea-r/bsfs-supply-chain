@@ -22,15 +22,9 @@ from typing import Optional
 import requests
 import pandas as pd
 import numpy as np
-import yaml
+from utils.config import load_config
 
 logger = logging.getLogger(__name__)
-
-
-def load_config(config_path: str = "config.yaml") -> dict:
-    """Load central configuration from YAML file."""
-    with open(config_path, "r") as f:
-        return yaml.safe_load(f)
 
 
 class SECEdgarScraper:

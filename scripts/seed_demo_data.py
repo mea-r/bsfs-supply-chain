@@ -509,6 +509,7 @@ def seed_all(config: dict) -> None:
     from data_engineering.ratio_calculator import compute_ratios
     from data_engineering.supply_chain_builder import build_edges
     from data_engineering.data_quality_report import generate_report
+    from data_engineering.macro_fetcher import fetch_macro
 
     fin_dir = ROOT / config["data"]["financials_dir"]
     fin_dir.mkdir(parents=True, exist_ok=True)
@@ -541,6 +542,10 @@ def seed_all(config: dict) -> None:
     # Generate quality report
     generate_report(df_scored, config, str(ROOT / "data_quality_report.md"))
     print(f"  Saved data_quality_report.md")
+
+    # Fetch/generate macro data
+    macro_df = fetch_macro(config)
+    print(f"  Saved {len(macro_df)} macro observations to data/macro/macro_series.csv")
 
     print("\n✅ Demo data seeded. Run: streamlit run dashboard/app.py")
 

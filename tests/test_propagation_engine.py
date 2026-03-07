@@ -35,7 +35,7 @@ BASE_CONFIG = {
     },
     "propagation": {
         "contagion_damping_alpha": 0.6,
-        "chokepoint_indegree_threshold": 2,
+        "chokepoint_outdegree_threshold": 2,
         "chokepoint_amplification_factor": 1.4,
         "liquidity_stress_multiplier": 1.3,
         "min_propagation_weight": 0.05,

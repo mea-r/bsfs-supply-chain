@@ -13,9 +13,10 @@ For each firm-year, flags:
 import logging
 import pandas as pd
 import numpy as np
-import yaml
 from pathlib import Path
 from datetime import datetime
+
+from utils.config import load_config
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +30,6 @@ SUPPLEMENTAL_FIELDS = [
     "interest_expense", "accounts_payable", "accounts_receivable",
     "cogs", "long_term_debt", "stockholders_equity",
 ]
-
-
-def load_config(config_path: str = "config.yaml") -> dict:
-    with open(config_path, "r") as f:
-        return yaml.safe_load(f)
 
 
 def audit_dataframe(df: pd.DataFrame) -> dict:

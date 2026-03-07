@@ -13,15 +13,11 @@ engine to query firm-year risk states without re-computing.
 import logging
 import pandas as pd
 import numpy as np
-import yaml
 from pathlib import Path
 
+from utils.config import load_config
+
 logger = logging.getLogger(__name__)
-
-
-def load_config(config_path: str = "config.yaml") -> dict:
-    with open(config_path, "r") as f:
-        return yaml.safe_load(f)
 
 
 class ScoreStore:

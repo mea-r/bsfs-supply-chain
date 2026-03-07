@@ -29,16 +29,12 @@ in assumption_basis. This supports audit traceability.
 
 import logging
 import pandas as pd
-import yaml
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 
-def load_config(config_path: str = "config.yaml") -> dict:
-    """Load central configuration from YAML file."""
-    with open(config_path, "r") as f:
-        return yaml.safe_load(f)
+from utils.config import load_config
 
 
 # -----------------------------------------------------------------------

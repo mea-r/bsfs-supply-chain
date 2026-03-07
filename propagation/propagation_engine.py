@@ -29,14 +29,9 @@ from typing import Optional
 import pandas as pd
 import numpy as np
 import networkx as nx
-import yaml
+from utils.config import load_config
 
 logger = logging.getLogger(__name__)
-
-
-def load_config(config_path: str = "config.yaml") -> dict:
-    with open(config_path, "r") as f:
-        return yaml.safe_load(f)
 
 
 class PropagationEngine:
@@ -339,7 +334,7 @@ class PropagationEngine:
         Rule 4: Chokepoint Amplification.
 
         Economic logic:
-          Nodes that are "chokepoints" — high in-degree (many buyers depend on
+          Nodes that are "chokepoints" — high out-degree (many buyers depend on
           them) AND in the grey/distress zone — amplify stress propagation.
           Chokepoints represent single-source or highly-concentrated suppliers
           whose stress is felt more acutely than a peripheral supplier.
@@ -362,10 +357,10 @@ class PropagationEngine:
         float
             (Possibly amplified) stress.
         """
-        in_degree = self.graph.in_degree(node)
-        threshold = self.prop_config["chokepoint_indegree_threshold"]
+        out_degree = self.graph.out_degree(node)
+        threshold = self.prop_config["chokepoint_outdegree_threshold"]
         zone = state.get("credit_zone", "safe")
-        if in_degree >= threshold and zone in ("grey", "distress"):
+        if out_degree >= threshold and zone in ("grey", "distress"):
             amp = self.prop_config["chokepoint_amplification_factor"]
             logger.debug(f"Chokepoint amplification at {node}: ×{amp}")
             return stress * amp
@@ -462,7 +457,8 @@ class PropagationEngine:
         if not pd.isna(revenue_delta):
             dz += w["w5"] * (revenue_delta / ta)
         # Also re-estimate X1 if current_liabilities changed (S1 may stress working capital)
-        state["z_score"] = round(max(-10.0, z_old + dz), 4)
+        z_floor = self.prop_config.get("z_score_floor", -10.0)
+        state["z_score"] = round(max(z_floor, z_old + dz), 4)
         state["credit_zone"] = self._classify_zone(state["z_score"])
 
     def _shock_s1_interest_rate_spike(self, magnitude: float) -> None:
@@ -505,7 +501,8 @@ class PropagationEngine:
             # Economic: firms with high ICR can absorb more; low-ICR firms must cut opex
             # Conservative assumption: 50% of additional interest expense reduces EBIT
             if not pd.isna(ebit):
-                ebit_delta = -0.5 * additional_ie
+                passthrough = self.prop_config.get("s1_ebit_passthrough", 0.5)
+                ebit_delta = -passthrough * additional_ie
                 state["ebit"] = ebit + ebit_delta
                 # Apply incremental Z-score change (not full recompute)
                 self._apply_z_score_delta(state, ebit_delta=ebit_delta)
@@ -558,8 +555,8 @@ class PropagationEngine:
                 ebit = state.get("ebit", float("nan"))
                 if not pd.isna(ebit):
                     # Operating leverage: EBIT loss > revenue loss due to fixed costs
-                    operating_leverage = 1.5  # industry assumption; flagged for review
-                    state["ebit"] = ebit - rev_loss * operating_leverage * magnitude
+                    operating_leverage = self.prop_config.get("s2_operating_leverage", 1.5)
+                    state["ebit"] = ebit - rev_loss * operating_leverage
             state["z_score"] = self._recompute_z_score(state)
             state["credit_zone"] = self._classify_zone(state["z_score"])
             state["shock_applied"] = True
@@ -636,7 +633,7 @@ class PropagationEngine:
             node, hops, incoming_stress = queue.pop(0)
             if node in visited and hops > 0:
                 continue
-            visited.add((node, hops))
+            visited.add(node)
 
             src_state = self.node_states.get(node, {})
 
@@ -664,7 +661,8 @@ class PropagationEngine:
                     buyer, buyer_state, stress_dampened
                 )
 
-                if stress_final < 0.001:
+                min_accumulate = self.prop_config.get("min_stress_accumulate", 0.001)
+                if stress_final < min_accumulate:
                     continue
 
                 # Accumulate stress on buyer
@@ -676,18 +674,21 @@ class PropagationEngine:
                 # Use the buyer's CURRENT z_score (which may already reflect a shock)
                 # rather than the base graph value, to avoid overwriting shock effects.
                 accumulated = buyer_state["stress_score"]
-                if accumulated > 0.1:
+                min_z_update = self.prop_config.get("min_stress_z_update", 0.1)
+                if accumulated > min_z_update:
                     current_z = buyer_state.get("z_score", float("nan"))
                     if not pd.isna(current_z):
-                        # Stress score reduces Z-score proportionally
-                        # (economic: stress score ≈ fraction of value-at-risk from supply disruption)
+                        z_scaling = self.prop_config.get("stress_to_z_scaling", 0.15)
+                        z_floor = self.prop_config.get("z_score_floor", -10.0)
                         buyer_state["z_score"] = round(
-                            max(-10.0, current_z - accumulated * abs(current_z) * 0.15), 4
+                            max(z_floor, current_z - accumulated * abs(current_z) * z_scaling), 4
                         )
                         buyer_state["credit_zone"] = self._classify_zone(buyer_state["z_score"])
 
                 # Continue propagation if stress is still meaningful
-                if stress_final > 0.01 and hops < 5:
+                min_propagate = self.prop_config.get("min_stress_propagate", 0.01)
+                max_hops = self.prop_config.get("max_propagation_hops", 5)
+                if stress_final > min_propagate and hops < max_hops:
                     queue.append((buyer, hops + 1, stress_final))
 
     def _propagate_upstream(self, seed_tickers: set, magnitude: float) -> None:
@@ -721,7 +722,8 @@ class PropagationEngine:
                     ebit = supplier_state.get("ebit", float("nan"))
                     if not pd.isna(ebit):
                         # Higher operating leverage for smaller suppliers
-                        supplier_state["ebit"] = ebit * (1 - rev_impact * 1.3)
+                        upstream_leverage = self.prop_config.get("upstream_operating_leverage", 1.3)
+                        supplier_state["ebit"] = ebit * (1 - rev_impact * upstream_leverage)
 
                 supplier_state["z_score"] = self._recompute_z_score(supplier_state)
                 supplier_state["credit_zone"] = self._classify_zone(supplier_state["z_score"])
@@ -811,7 +813,7 @@ class PropagationEngine:
         Identify supply chain chokepoints.
 
         A chokepoint is a node where:
-          - in-degree >= threshold (many buyers depend on it), AND
+          - out-degree >= threshold (many buyers depend on it), AND
           - credit zone is grey or distress (financially stressed)
 
         Economic significance:
@@ -826,18 +828,17 @@ class PropagationEngine:
             {ticker, name, in_degree, out_degree, credit_zone, z_score,
              stress_score, betweenness_centrality, risk_score}
         """
-        threshold = self.prop_config["chokepoint_indegree_threshold"]
+        threshold = self.prop_config["chokepoint_outdegree_threshold"]
         betweenness = nx.betweenness_centrality(self.graph, weight="weight")
 
         chokepoints = []
+        max_out_deg = max((d for _, d in self.graph.out_degree()), default=1)
         for node in self.graph.nodes():
+            out_deg = self.graph.out_degree(node)
             in_deg = self.graph.in_degree(node)
             state = self.node_states.get(node, {})
             zone = state.get("credit_zone", "unknown")
 
-            # A node qualifies as a chokepoint if it's structurally important
-            # (high in-degree) regardless of stress zone — report all of them
-            # but flag those in grey/distress as highest priority.
             bc = betweenness.get(node, 0.0)
 
             # Composite risk score: structural centrality × financial stress
@@ -845,7 +846,7 @@ class PropagationEngine:
             z = state.get("z_score", float("nan"))
             z_normalized = max(0, 1 - z / 3.0) if not pd.isna(z) else 0.5
             risk_score = round(
-                (in_deg / max(1, max(d for _, d in self.graph.in_degree()))) * 0.4
+                (out_deg / max(1, max_out_deg)) * 0.4
                 + bc * 0.3
                 + zone_stress.get(zone, 0) * 0.2
                 + z_normalized * 0.1,
@@ -856,13 +857,13 @@ class PropagationEngine:
                 "ticker": node,
                 "name": state.get("name", node),
                 "in_degree": in_deg,
-                "out_degree": self.graph.out_degree(node),
+                "out_degree": out_deg,
                 "credit_zone": zone,
                 "z_score": state.get("z_score", float("nan")),
                 "stress_score": state.get("stress_score", 0.0),
                 "betweenness_centrality": round(bc, 4),
                 "risk_score": risk_score,
-                "is_chokepoint": in_deg >= threshold and zone in ("grey", "distress"),
+                "is_chokepoint": out_deg >= threshold and zone in ("grey", "distress"),
             })
 
         return sorted(chokepoints, key=lambda x: x["risk_score"], reverse=True)

@@ -1,3 +1,57 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+*.egg-link
+
+# uv
+.venv/
+.uv/
+uv.lock
+
+# Environment
+.env
+.env.*
+!.env.example
+*.local
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Data files
 data/financials/*.parquet
+*.parquet
+*.csv
+*.xlsx
+*.xls
+data/raw/
+data/processed/
+data/cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs & reports
+*.log
+logs/
+reports/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/

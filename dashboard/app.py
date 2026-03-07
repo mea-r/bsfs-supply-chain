@@ -63,6 +63,16 @@ ZONE_COLORS = dash_config["colors"]
 
 
 @st.cache_data
+def load_macro() -> pd.DataFrame:
+    """Load macroeconomic time series from disk (optional)."""
+    path = ROOT / "data" / "macro" / "macro_series.csv"
+    if not path.exists():
+        return pd.DataFrame()
+    df = pd.read_csv(path, parse_dates=["date"])
+    return df
+
+
+@st.cache_data
 def load_scores() -> pd.DataFrame:
     """Load pre-computed risk scores from disk."""
     path = ROOT / "risk_framework" / "scores.csv"
@@ -175,6 +185,19 @@ elif selected_scenario == "S3":
         "Buyers with high dependency (thick edges) are most impacted."
     )
 
+# Macro context (if available)
+macro_df = load_macro()
+if not macro_df.empty:
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 📈 Macro Context")
+    fred_map = config["data"]["fred_series"]
+    latest_macro = macro_df.sort_values("date").groupby("series_id").last()
+    for name, series_id in fred_map.items():
+        if series_id in latest_macro.index:
+            val = latest_macro.loc[series_id, "value"]
+            label = name.replace("_", " ").title()
+            st.sidebar.metric(label, f"{val:.2f}")
+
 st.sidebar.markdown("---")
 run_simulation = st.sidebar.button(
     "▶ Run Simulation",
@@ -232,7 +255,10 @@ st.markdown("---")
 # ------------------------------------------------------------------
 # Tabs
 # ------------------------------------------------------------------
-tab1, tab2, tab3 = st.tabs(["🌐 Network View", "🏢 Firm Detail", "📊 Risk Summary"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "🌐 Network View", "🏢 Firm Detail", "📊 Risk Summary",
+    "📋 Case Studies", "💰 Trade Credit Exposure",
+])
 
 # ==================================================================
 # TAB 1: Network View
@@ -427,7 +453,7 @@ with tab3:
     st.markdown("### 🎯 Chokepoint Analysis")
     st.markdown(
         "Firms ranked by composite risk score: structural centrality × financial stress. "
-        "**Chokepoints** (🔴) have in-degree ≥ threshold AND are in grey/distress zone."
+        "**Chokepoints** (🔴) have out-degree ≥ threshold AND are in grey/distress zone."
     )
 
     chokepoints = engine.get_chokepoints()
@@ -510,3 +536,197 @@ with tab3:
     with col4:
         avg_cr = year_data["current_ratio"].mean() if "current_ratio" in year_data.columns else float("nan")
         st.metric("Avg Current Ratio", f"{avg_cr:.2f}" if not pd.isna(avg_cr) else "N/A")
+
+    # Macro time series chart
+    if not macro_df.empty:
+        st.markdown("---")
+        st.markdown("### 📈 Macroeconomic Time Series")
+        from dashboard.graph_utils import build_macro_chart
+        fig_macro = build_macro_chart(macro_df, config)
+        st.plotly_chart(fig_macro, use_container_width=True, key="macro_chart")
+
+# ==================================================================
+# TAB 4: Case Studies
+# ==================================================================
+with tab4:
+    st.markdown("### 📋 Pre-Built Case Study Scenarios")
+    st.markdown(
+        "These case studies demonstrate how financial stress propagates through "
+        "the automotive supply chain under documented real-world scenarios."
+    )
+
+    case_studies = {
+        "BorgWarner Bankruptcy → Impact on Ford's Trade Credit": {
+            "scenario": "S3",
+            "focal_firm": "BWA",
+            "magnitude": 1.0,
+            "narrative": """
+**Background:** BorgWarner supplies electrification and powertrain components to Ford (19% of
+BWA revenue), Stellantis (14%), and GM (11%). A bankruptcy would immediately disrupt
+EV drivetrain and turbocharger supply.
+
+**Economic mechanism:**
+1. Ford faces 40% edge-weighted exposure to BWA → emergency sourcing costs, production halts
+2. Stellantis and GM face 30% and 25% exposure respectively
+3. Working capital strain: Ford may need to pre-pay alternative suppliers
+4. Trade credit write-off: any outstanding payables to BWA become claims in bankruptcy
+
+**Key question for trade credit analysts:** What is the expected loss on receivables from
+firms downstream of BWA?
+            """,
+        },
+        "COVID-19 Demand Shock → Upstream Cascade to Tier-3": {
+            "scenario": "S2",
+            "focal_firm": None,
+            "magnitude": 0.25,
+            "narrative": """
+**Background:** In Q2 2020, global auto production fell ~25% as OEM plants shut down.
+This immediately reduced orders to Tier-2 and Tier-3 suppliers.
+
+**Economic mechanism:**
+1. OEM revenue drops 25% (Ford, GM, Toyota, Stellantis)
+2. Operating leverage amplifies the EBIT impact (fixed costs remain constant)
+3. Suppliers with high customer concentration (Lear: 24% GM, 20% Ford) face
+   proportionally larger revenue hits
+4. Smaller Tier-3 firms (Dana, Modine) have less financial buffer to absorb the shock
+
+**Key question:** Which suppliers face liquidity crises, and which maintain safe Z-scores?
+            """,
+        },
+        "2022 Rate Hike Cycle → Debt Service Stress": {
+            "scenario": "S1",
+            "focal_firm": None,
+            "magnitude": 0.40,
+            "narrative": """
+**Background:** The Fed raised rates from 0.25% to 5.25% in 2022-2023, the fastest tightening
+cycle in decades. Firms with floating-rate debt or maturing fixed-rate bonds faced sharply
+higher interest expenses.
+
+**Economic mechanism:**
+1. Interest expense increases ~40% for firms with significant floating-rate exposure
+2. ICR (Interest Coverage Ratio) falls — firms with ICR < 1.5 enter danger zone
+3. EBIT is partially eroded as higher debt service costs reduce operating cash flow
+4. Z-Score X3 (EBIT/Assets) deteriorates, potentially pushing grey-zone firms into distress
+
+**Key question:** Which highly-leveraged suppliers (D/E > 3) cannot absorb the rate increase?
+            """,
+        },
+    }
+
+    selected_case = st.selectbox(
+        "Select Case Study",
+        list(case_studies.keys()),
+        key="case_study_selector",
+    )
+
+    case = case_studies[selected_case]
+    st.markdown(case["narrative"])
+
+    if st.button("▶ Run This Case Study", key="run_case_study", type="primary"):
+        import copy
+        engine_case = get_engine(selected_year)
+        before = copy.deepcopy(engine_case.node_states)
+        engine_case.apply_shock(
+            case["scenario"], case["magnitude"], focal_firm=case["focal_firm"]
+        )
+        case_summary = engine_case.summary(before)
+
+        st.markdown("---")
+        st.markdown("#### Results")
+
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            new_dist = case_summary.get("new_distressed", 0)
+            st.metric("New Firms in Distress", f"+{new_dist}")
+        with c2:
+            pct = case_summary.get("pct_distress_after", 0)
+            st.metric("% in Distress (After)", f"{pct:.0f}%")
+        with c3:
+            st.metric("Total Firms", case_summary.get("total", 0))
+
+        # Show before/after table for all firms
+        impact_rows = []
+        for ticker in sorted(engine_case.node_states.keys()):
+            b = before.get(ticker, {})
+            a = engine_case.node_states.get(ticker, {})
+            b_z = b.get("z_score", float("nan"))
+            a_z = a.get("z_score", float("nan"))
+            delta = (a_z - b_z) if not (pd.isna(a_z) or pd.isna(b_z)) else float("nan")
+            impact_rows.append({
+                "Firm": ticker,
+                "Zone Before": b.get("credit_zone", "unknown"),
+                "Z Before": f"{b_z:.2f}" if not pd.isna(b_z) else "N/A",
+                "Zone After": a.get("credit_zone", "unknown"),
+                "Z After": f"{a_z:.2f}" if not pd.isna(a_z) else "N/A",
+                "ΔZ": f"{delta:+.2f}" if not pd.isna(delta) else "N/A",
+                "Stress": f"{a.get('stress_score', 0):.3f}",
+            })
+        st.dataframe(pd.DataFrame(impact_rows), use_container_width=True, hide_index=True)
+
+# ==================================================================
+# TAB 5: Trade Credit Exposure
+# ==================================================================
+with tab5:
+    from risk_framework.trade_credit import (
+        compute_trade_credit_exposure, portfolio_summary
+    )
+
+    st.markdown("### 💰 Trade Credit Exposure Analysis")
+    st.markdown(
+        "Quantifies trade credit risk from the perspective of a financial institution "
+        "providing working-capital financing or trade credit insurance to supply chain firms."
+    )
+
+    edges_df_tc = load_edges()
+    exposure_df = compute_trade_credit_exposure(node_states, edges_df_tc)
+    portfolio = portfolio_summary(exposure_df)
+
+    # Portfolio-level metrics
+    st.markdown("#### Portfolio Summary")
+    p1, p2, p3, p4 = st.columns(4)
+    with p1:
+        st.metric(
+            "Total AR at Risk",
+            f"${portfolio['total_ar_at_risk']:,.0f}",
+        )
+    with p2:
+        st.metric(
+            "Expected Loss",
+            f"${portfolio['total_expected_loss']:,.0f}",
+        )
+    with p3:
+        st.metric("% AR at Risk", f"{portfolio['pct_ar_at_risk']:.1f}%")
+    with p4:
+        st.metric("Avg PD", f"{portfolio['avg_pd']:.1%}")
+
+    st.markdown("---")
+
+    # Firm-level exposure table
+    st.markdown("#### Firm-Level Exposure")
+    display_cols = [
+        "ticker", "name", "credit_zone", "z_score", "pd_estimate",
+        "accounts_receivable", "ar_at_risk", "expected_loss",
+    ]
+    available_cols = [c for c in display_cols if c in exposure_df.columns]
+    exp_display = exposure_df[available_cols].copy()
+    exp_display.columns = [c.replace("_", " ").title() for c in available_cols]
+
+    # Format currency columns
+    for col in ["Accounts Receivable", "Ar At Risk", "Expected Loss"]:
+        if col in exp_display.columns:
+            exp_display[col] = exp_display[col].apply(
+                lambda v: f"${v:,.0f}" if not pd.isna(v) else "N/A"
+            )
+    if "Pd Estimate" in exp_display.columns:
+        exp_display["Pd Estimate"] = exp_display["Pd Estimate"].apply(
+            lambda v: f"{v:.1%}" if not pd.isna(v) else "N/A"
+        )
+
+    st.dataframe(exp_display, use_container_width=True, hide_index=True)
+
+    st.markdown("---")
+    st.markdown(
+        "**Methodology:** PD estimated from Altman Z-Score mapping. "
+        "LGD = 60% (Moody's 2023 average for senior unsecured manufacturing claims). "
+        "Expected Loss = AR × PD × LGD."
+    )
