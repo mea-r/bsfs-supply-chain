@@ -11,10 +11,9 @@ build/
 *.whl
 *.egg-link
 
-# uv
+# uv (commit uv.lock for reproducible CI)
 .venv/
 .uv/
-uv.lock
 
 # Environment
 .env
