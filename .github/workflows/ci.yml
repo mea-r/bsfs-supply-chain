@@ -44,7 +44,7 @@ jobs:
           version: "latest"
           enable-cache: true
 
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
+      - name: Set up Python 3.13
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install ruff
@@ -58,7 +58,7 @@ jobs:
 
   # ── 2. Test ───────────────────────────────────────────────
   test:
-    name: Test (Python ${{ env.PYTHON_VERSION }})
+    name: Test (Python 3.13)
     runs-on: ubuntu-latest
     needs: []                        # runs independently of lint
 
@@ -72,7 +72,7 @@ jobs:
           version: "latest"
           enable-cache: true
 
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
+      - name: Set up Python 3.13
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
