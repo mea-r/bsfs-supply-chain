@@ -1,0 +1,162 @@
+company_a,a_id,company_b,b_id,supplier,customer,partner,relationship_strength
+Intel,1,Keysight Technologies,54,TRUE,TRUE,TRUE,4
+Intel,1,Applied Materials,34,TRUE,FALSE,FALSE,4
+Samsung,2,Qualcomm,10,TRUE,TRUE,TRUE,4
+Texas Instruments,4,Nvidia,8,FALSE,TRUE,TRUE,5
+Texas Instruments,4,Apple,11,FALSE,TRUE,FALSE,5
+Texas Instruments,4,Amkor,57,TRUE,FALSE,FALSE,4
+Texas Instruments,4,Applied Materials,34,FALSE,FALSE,TRUE,3
+Texas Instruments,4,Tokyo Electron,46,FALSE,TRUE,FALSE,3
+STMicroelectronics,6,Samsung,2,TRUE,TRUE,FALSE,5
+STMicroelectronics,6,Apple,11,FALSE,TRUE,FALSE,4
+AMD,7,Micron,66,FALSE,TRUE,TRUE,4
+Nvidia,8,Google,13,TRUE,TRUE,TRUE,5
+Nvidia,8,Cadence,20,FALSE,TRUE,TRUE,4
+MediaTek,9,Samsung,2,FALSE,TRUE,FALSE,3
+Qualcomm,10,Samsung,2,TRUE,TRUE,TRUE,5
+Qualcomm,10,Amkor,57,TRUE,FALSE,FALSE,4
+Qualcomm,10,Google,13,FALSE,TRUE,TRUE,4
+Apple,11,Samsung,2,TRUE,TRUE,FALSE,5
+Apple,11,Texas Instruments,4,TRUE,FALSE,FALSE,5
+Google,13,Nvidia,4,TRUE,TRUE,TRUE,5
+TSMC,15,ASML,38,TRUE,FALSE,FALSE,3
+TSMC,15,AMD,7,FALSE,TRUE,TRUE,5
+TSMC,15,Applied Materials,34,TRUE,FALSE,FALSE,3
+TSMC,15,Lam Research,45,TRUE,FALSE,FALSE,3
+TSMC,15,Siltronic,29,TRUE,FALSE,FALSE,4
+TSMC,15,Daifuku,52,TRUE,FALSE,FALSE,5
+TSMC,15,Qualcomm,10,FALSE,TRUE,TRUE,5
+TSMC,15,MediaTek,9,FALSE,TRUE,TRUE,5
+TSMC,15,Nvidia,8,FALSE,TRUE,TRUE,5
+TSMC,15,Apple,11,FALSE,TRUE,FALSE,2
+Globalfoundries,16,Samsung,2,FALSE,TRUE,TRUE,5
+Globalfoundries,16,Qualcomm,10,FALSE,TRUE,TRUE,5
+Globalfoundries,16,Apple,11,FALSE,TRUE,TRUE,5
+Globalfoundries,16,TSMC,15,FALSE,FALSE,TRUE,5
+Globalfoundries,16,MediaTek,9,FALSE,TRUE,TRUE,4
+UMC,17,MediaTek,9,FALSE,TRUE,TRUE,5
+UMC,17,Intel,1,FALSE,TRUE,TRUE,5
+UMC,17,GlobalWafers,28,TRUE,FALSE,FALSE,5
+UMC,17,Shin-Etsu,26,TRUE,FALSE,FALSE,4
+UMC,17,Apple,11,FALSE,TRUE,FALSE,3
+UMC,17,SUMCO,27,TRUE,FALSE,FALSE,3
+SMIC,18,Siemens,21,TRUE,FALSE,TRUE,3
+Hua Hong,19,Hoya,41,FALSE,FALSE,TRUE,3
+Hua Hong,19,Dai Nippon Printing,43,FALSE,FALSE,TRUE,3
+Cadence,20,Nvidia,8,TRUE,FALSE,TRUE,5
+Cadence,20,TSMC,15,FALSE,TRUE,TRUE,5
+Cadence,20,Micron,66,FALSE,FALSE,TRUE,5
+Cadence,20,Globalfoundries,16,FALSE,FALSE,TRUE,5
+Cadence,20,MediaTek,9,FALSE,TRUE,FALSE,5
+Synopsys,22,Nvidia,8,TRUE,FALSE,TRUE,5
+Synopsys,22,Intel,1,FALSE,FALSE,TRUE,4
+Synopsys,22,Samsung,2,FALSE,FALSE,TRUE,4
+Synopsys,22,SMIC,18,FALSE,TRUE,TRUE,4
+SST,24,Apple,11,TRUE,FALSE,FALSE,5
+Imagination Technologies,25,TSMC,15,FALSE,FALSE,TRUE,5
+Imagination Technologies,25,Samsung,2,FALSE,FALSE,TRUE,5
+Imagination Technologies,25,Intel,1,FALSE,FALSE,TRUE,5
+Imagination Technologies,25,SMIC,18,FALSE,TRUE,TRUE,4
+SUMCO,27,Samsung,2,FALSE,TRUE,FALSE,4
+GlobalWafers,28,Apple,11,FALSE,TRUE,FALSE,4
+Siltronic,29,Intel,1,TRUE,FALSE,FALSE,4
+Siltronic,29,Samsung,2,TRUE,FALSE,FALSE,4
+Siltronic,29,TSMC,15,TRUE,FALSE,FALSE,4
+Accretech,31,Texas Instruments,4,TRUE,FALSE,FALSE,4
+Disco,33,Intel,1,TRUE,FALSE,FALSE,4
+Applied Materials,34,Intel,1,TRUE,FALSE,FALSE,4
+Applied Materials,34,TSMC,15,TRUE,FALSE,FALSE,4
+Applied Materials,34,Samsung,2,TRUE,FALSE,FALSE,4
+Applied Materials,34,Texas Instruments,4,FALSE,FALSE,TRUE,4
+Applied Materials,34,Powertech,10,TRUE,FALSE,FALSE,4
+Applied Materials,34,Apple,11,FALSE,FALSE,TRUE,4
+Applied Materials,34,Renesas,5,FALSE,FALSE,TRUE,4
+Axcelis,37,SMIC,18,TRUE,FALSE,FALSE,3
+ASML,38,TSMC,15,TRUE,FALSE,FALSE,5
+ASML,38,Intel,1,TRUE,FALSE,FALSE,5
+ASML,38,Nikon,40,TRUE,FALSE,TRUE,5
+Nikon,40,ASML,38,FALSE,TRUE,TRUE,3
+Hoya,41,Hua Hong,19,FALSE,FALSE,TRUE,4
+AGC,42,Intel,1,TRUE,FALSE,FALSE,3
+Dai Nippon Printing,43,TSMC,15,FALSE,FALSE,TRUE,4
+Dai Nippon Printing,43,Phototronics,44,FALSE,FALSE,TRUE,3
+Dai Nippon Printing,43,Kioxia,67,FALSE,FALSE,TRUE,4
+Lam Research,45,Intel,1,FALSE,TRUE,FALSE,5
+Lam Research,45,Samsung,2,FALSE,TRUE,FALSE,3
+Lam Research,45,TSMC,15,FALSE,TRUE,FALSE,4
+Lam Research,45,Micron,66,FALSE,TRUE,FALSE,4
+Tokyo Electron,46,Intel,1,FALSE,TRUE,FALSE,3
+Tokyo Electron,46,Samsung,2,FALSE,TRUE,FALSE,5
+Tokyo Electron,46,TSMC,15,FALSE,TRUE,FALSE,5
+Tokyo Electron,46,ASM International,47,FALSE,FALSE,TRUE,5
+ASM International,47,Intel,1,FALSE,TRUE,FALSE,5
+ASM International,47,TSMC,15,FALSE,TRUE,FALSE,5
+ASM International,47,Tokyo Electron,46,FALSE,FALSE,TRUE,5
+ASM International,47,ASM Pacific Technologies (ASMPT),60,FALSE,FALSE,TRUE,5
+Screen Holdings,48,TSMC,15,FALSE,TRUE,FALSE,5
+Brooks Automation,51,Applied Materials,34,FALSE,TRUE,FALSE,5
+Daifuku,52,TSMC,15,FALSE,TRUE,FALSE,5
+Rorze,53,Applied Materials,34,FALSE,TRUE,FALSE,4
+Keysight Technologies,54,Intel,1,FALSE,TRUE,TRUE,5
+Keysight Technologies,54,Samsung,2,FALSE,FALSE,TRUE,4
+Keysight Technologies,54,STMicroelectronics,6,FALSE,FALSE,TRUE,4
+Keysight Technologies,54,Nvidia,8,FALSE,FALSE,TRUE,3
+Keysight Technologies,54,MediaTek,9,FALSE,FALSE,TRUE,3
+Keysight Technologies,54,TSMC,15,FALSE,FALSE,TRUE,4
+Keysight Technologies,54,Globalfoundries,16,FALSE,FALSE,TRUE,4
+Keysight Technologies,54,Synopsys,22,FALSE,FALSE,TRUE,3
+Amkor,57,Qualcomm,10,FALSE,TRUE,FALSE,4
+Amkor,57,Apple,11,FALSE,TRUE,FALSE,4
+Amkor,57,Texas Instruments,4,FALSE,TRUE,FALSE,4
+Amkor,57,Nvidia,8,FALSE,TRUE,FALSE,4
+Amkor,57,TSMC,15,FALSE,TRUE,FALSE,3
+Amkor,57,Samsung,2,FALSE,TRUE,FALSE,4
+Amkor,57,Infineon,3,FALSE,TRUE,FALSE,4
+Amkor,57,STMicroelectronics,6,FALSE,TRUE,FALSE,4
+Amkor,57,Renesas,5,FALSE,TRUE,FALSE,4
+Amkor,57,Besi,61,TRUE,FALSE,FALSE,5
+Amkor,57,Kioxia,67,FALSE,TRUE,FALSE,4
+JCET,58,Hua Hong,19,TRUE,FALSE,FALSE,3
+JCET,58,SMIC,18,FALSE,TRUE,FALSE,4
+JCET,58,Qualcomm,10,FALSE,TRUE,FALSE,3
+JCET,58,Besi,61,TRUE,FALSE,FALSE,4
+Tongfu Microelectronics,59,MediaTek,9,FALSE,TRUE,FALSE,3
+Tongfu Microelectronics,59,AMD,7,FALSE,TRUE,TRUE,3
+Tongfu Microelectronics,59,Texas Instruments,4,FALSE,TRUE,FALSE,3
+Tongfu Microelectronics,59,Besi,61,TRUE,FALSE,FALSE,4
+ASM Pacific Technologies (ASMPT),60,ASM International,47,FALSE,FALSE,TRUE,4
+ASM Pacific Technologies (ASMPT),60,ASE Group,56,FALSE,TRUE,FALSE,4
+Besi,61,ASE Group,56,FALSE,TRUE,FALSE,4
+Besi,61,STMicroelectronics,6,FALSE,TRUE,FALSE,5
+Besi,61,Amkor,57,FALSE,TRUE,FALSE,5
+Besi,61,Intel,1,FALSE,TRUE,FALSE,4
+Besi,61,TSMC,15,FALSE,TRUE,FALSE,5
+Besi,61,Texas Instruments,4,FALSE,TRUE,FALSE,4
+Besi,61,Infineon,3,FALSE,TRUE,FALSE,4
+Besi,61,JCET,58,FALSE,TRUE,FALSE,4
+Besi,61,Tongfu Microelectronics,59,FALSE,TRUE,FALSE,4
+Besi,61,Nvidia,8,FALSE,TRUE,FALSE,3
+Besi,61,Applied Materials,34,FALSE,FALSE,TRUE,2
+Advantest,62,Samsung,2,FALSE,TRUE,FALSE,4
+Advantest,62,TSMC,15,FALSE,TRUE,FALSE,4
+Advantest,62,ASE Group,56,FALSE,TRUE,FALSE,3
+Advantest,62,Globalfoundries,16,FALSE,FALSE,TRUE,2
+Teradyne,63,TSMC,15,FALSE,TRUE,FALSE,3
+Teradyne,63,ASE Group,56,FALSE,TRUE,FALSE,3
+Teradyne,63,Infineon,3,FALSE,FALSE,TRUE,2
+UniTest,64,SK Hynix,65,FALSE,FALSE,TRUE,4
+SK Hynix,65,UniTest,64,FALSE,FALSE,TRUE,2
+SK Hynix,65,Nvidia,8,FALSE,TRUE,FALSE,2
+Micron,66,AMD,7,TRUE,FALSE,TRUE,5
+Micron,66,Lam Research,45,TRUE,FALSE,FALSE,4
+Micron,66,Intel,1,FALSE,FALSE,TRUE,3
+Micron,66,Nvidia,8,FALSE,TRUE,FALSE,4
+Micron,66,Texas Instruments,4,FALSE,FALSE,TRUE,2
+Micron,66,Cadence,20,FALSE,FALSE,TRUE,3
+Micron,66,MediaTek,9,FALSE,FALSE,TRUE,2
+Micron,66,Renesas,5,FALSE,FALSE,TRUE,2
+Micron,66,Infineon,3,FALSE,FALSE,TRUE,2
+Kioxia,67,Apple,11,FALSE,TRUE,FALSE,4
+Kioxia,67,Dai Nippon Printing,43,FALSE,FALSE,TRUE,3
+Kioxia,67,Amkor,57,TRUE,FALSE,FALSE,4
+Kioxia,67,AMD,7,TRUE,FALSE,FALSE,3
