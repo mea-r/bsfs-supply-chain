@@ -111,7 +111,7 @@ def build_plotly_graph(
         cr_str = f"{cr:.2f}" if not pd.isna(cr) else "N/A"
         stress = state.get("stress_score", 0.0)
 
-        node_texts.append(node)
+        node_texts.append(name)
         node_hovers.append(
             f"<b>{name} ({node})</b><br>"
             f"Zone: <b>{zone.upper()}</b><br>"
@@ -258,7 +258,7 @@ def build_z_score_timeseries(scores_df: pd.DataFrame, tickers: list) -> go.Figur
     fig.add_hline(y=1.81, line_dash="dash", line_color="#e74c3c", opacity=0.6)
 
     for ticker in tickers:
-        firm_data = scores_df[scores_df["ticker"] == ticker].sort_values("year")
+        firm_data = scores_df[scores_df["id"] == ticker].sort_values("year")
         if firm_data.empty:
             continue
         name = firm_data["name"].iloc[0] if "name" in firm_data.columns else ticker
@@ -365,7 +365,7 @@ def build_ratio_comparison(scores_df: pd.DataFrame, year: int) -> go.Figure:
 
     fig = go.Figure(
         go.Bar(
-            x=df_year["ticker"],
+            x=df_year["id"],
             y=df_year["z_score"],
             marker_color=colors,
             text=[f"{z:.2f}" for z in df_year["z_score"]],

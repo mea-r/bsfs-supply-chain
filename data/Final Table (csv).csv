@@ -1,71 +1,71 @@
-﻿Company,Z'',Ranking,Stress (logistic),Stress (uniform),Value Chain Category,Country
-Nvidia,12.85,1,0.019,0,Fabless,United States
-Shin-Etsu,12.29,2,0.025,0.014,Wafer Manufacturing,Japan
-Hoya,11.34,3,0.04,0.029,Photomasks (Blank),Japan
-Phototronics,10.75,4,0.053,0.043,Photomasks (Mask Shop),United States
-Rorze,10.66,5,0.056,0.058,Automated Material Handling (Wafer),Japan
-Applied Materials,10.17,6,0.07,0.072,Ion Implanters / Deposition Tools / Etching Tools / Sputtering Targets / Wafer Bonders,United States
-Disco,9.72,7,0.086,0.087,Crystal Machining Tools / Dicing Tools,Japan
-Lam Research,9.63,8,0.09,0.101,Deposition Tools / Etching Tools / Wafer Cleaning Tools / Photoresists,United States
-Tokyo Electron,9.33,9,0.103,0.116,Deposition Tools / Etching Tools / Wafer Cleaning / Resist Processing / Wafer Bonders,Japan
-Texas Instruments,9.04,10,0.117,0.13,IDM / Fab-lite,United States
-Accretech,8.86,11,0.127,0.145,Crystal Machining Tools,Japan
-Axcelis Technologies,8.71,12,0.135,0.159,Ion Implanters,United States
-ASM International,8.52,13,0.147,0.174,Deposition Tools,Netherlands
-Arm,8.21,14,0.167,0.188,Core IP,United Kingdom
-TSMC,8.09,15,0.176,0.203,Foundry,Taiwan
-Samsung,7.95,16,0.186,0.217,IDM / Fab-lite,South Korea
-Advantest,7.44,17,0.228,0.232,Testing Equipment,Japan
-SK Hynix,7.41,18,0.231,0.246,DRAM and NAND IDM,South Korea
-Daifuku,7.29,19,0.241,0.261,Automated Material Handling (Photomask) / Automated Material Handling (Wafer),Japan
-ASM Pacific Technologies (ASMPT),7.28,20,0.242,0.275,Integrated Assembly Tools,Singapore
-Screen Holdings,7.2,21,0.25,0.29,Wafer Cleaning Tools / Resist Processing Tools,Japan
-Imagination Technologies,6.91,22,0.278,0.304,Core IP,United Kingdom
-AMD,6.85,23,0.284,0.319,Fabless,United States
-Alphabet (Google),6.79,24,0.29,0.333,System Company,United States
-STMicroelectronics,6.78,25,0.291,0.348,IDM / Fab-lite,Switzerland / France
-Cadence Design Systems,6.45,26,0.326,0.362,EDA Tools,United States
-Besi,6.19,27,0.355,0.377,Integrated Assembly Tools,Netherlands
-Micron Technology,6.07,28,0.369,0.391,DRAM and NAND IDM,United States
-Okamoto,5.74,29,0.409,0.406,Crystal Machining Tools,Japan
-Qualcomm,5.35,30,0.456,0.42,Fabless,United States
-SÜSS MicroTec,5.25,31,0.469,0.435,Wafer Bonders and Aligners,Germany
-Canon,5.19,32,0.476,0.449,DUV Lithography,Japan
-Materion,5.16,33,0.48,0.464,"Sputtering targets, materials",United States
-Keysight Technologies,5.15,34,0.481,0.478,Process Monitoring,United States
-Teradyne,5.05,35,0.494,0.493,Testing Equipment,United States
-Dai Nippon Printing,5.01,36,0.499,0.507,Photomasks (Mask Shop),Japan
-UMC,5,37,0.5,0.522,Foundry,Taiwan
-Nikon,4.86,38,0.517,0.536,DUV Lithography,Japan
-Brooks Automation,4.8,39,0.525,0.551,Automated Material Handling (Photomask),United States
-Kioxia,4.78,40,0.527,0.565,DRAM and NAND IDM,Japan
-PVA TePla,4.72,41,0.535,0.58,Crystal Growing Furnaces,Germany
-EV Group,4.5,42,0.562,0.594,Wafer Bonders and Aligners,Austria
-Amkor Technology,4.48,43,0.564,0.609,OSAT / Advanced Packaging,United States
-Tesla,4.46,44,0.567,0.623,System Company,United States
-MediaTek,4.18,45,0.601,0.638,Fabless,Taiwan
-ASML,4.15,46,0.605,0.652,EUV Lithography,Netherlands
-Alibaba,4.13,47,0.607,0.667,System Company,China
-SUMCO,3.72,48,0.655,0.681,Wafer Manufacturing,Japan
-Hua Hong,3.55,49,0.674,0.696,Foundry,China
-Infineon,3.37,50,0.693,0.71,IDM / Fab-lite,Germany
-Intel,3.24,51,0.707,0.725,IDM / Fab-lite,United States
-Nissin Ion,3.15,52,0.716,0.739,Ion Implanters,United States
-AGC,3.06,53,0.725,0.754,Photomasks (Blank),Japan
-SST,3.03,54,0.728,0.768,Core IP,United States
-SMIC,3.02,55,0.729,0.783,Foundry,China
-UniTest,3.01,56,0.73,0.797,Testing Equipment,South Korea
-Renesas,2.95,57,0.736,0.812,IDM / Fab-lite,Japan
-Keithley Instruments,2.85,58,0.746,0.826,Process Monitoring,United States
-Siemens EDA (Mentor Graphics),2.83,59,0.747,0.841,EDA Tools,Germany / United States
-JX Nippon Mining & Metals,2.68,60,0.761,0.855,"Sputtering targets, materials",Japan
-JCET,2.68,61,0.761,0.87,OSAT,China
-Synopsys,2.63,62,0.766,0.884,EDA Tools,United States
-GlobalWafers,2.49,63,0.778,0.899,Wafer Manufacturing,Taiwan
-Apple,2.31,64,0.793,0.913,System Company,United States
-YMTC,2.1,65,0.81,0.928,DRAM and NAND IDM,China
-ASE Group,2.01,66,0.817,0.942,OSAT / Advanced Packaging,Taiwan
-GlobalFoundries,1.92,67,0.823,0.957,Foundry,United States
-Siltronic,1.9,68,0.825,0.971,Wafer Manufacturing,Germany
-Tongfu Microelectronics,0.98,69,0.882,0.986,OSAT,China
-SMIT,0.62,70,0.899,1,Ion Implanters,Japan
+Company,Z'',Ranking,Stress (logistic),Stress (uniform),Value Chain Category,Country,id
+Nvidia,12.85,1,0.019,0.0,Fabless,United States,8
+Shin-Etsu,12.29,2,0.025,0.014,Wafer Manufacturing,Japan,26
+Hoya,11.34,3,0.04,0.029,Photomasks (Blank),Japan,41
+Phototronics,10.75,4,0.053,0.043,Photomasks (Mask Shop),United States,nan
+Rorze,10.66,5,0.056,0.058,Automated Material Handling (Wafer),Japan,53
+Applied Materials,10.17,6,0.07,0.072,Ion Implanters / Deposition Tools / Etching Tools / Sputtering Targets / Wafer Bonders,United States,23
+Disco,9.72,7,0.086,0.087,Crystal Machining Tools / Dicing Tools,Japan,49
+Lam Research,9.63,8,0.09,0.101,Deposition Tools / Etching Tools / Wafer Cleaning Tools / Photoresists,United States,45
+Tokyo Electron,9.33,9,0.103,0.116,Deposition Tools / Etching Tools / Wafer Cleaning / Resist Processing / Wafer Bonders,Japan,46
+Texas Instruments,9.04,10,0.117,0.13,IDM / Fab-lite,United States,4
+Accretech,8.86,11,0.127,0.145,Crystal Machining Tools,Japan,31
+Axcelis Technologies,8.71,12,0.135,0.159,Ion Implanters,United States,61
+ASM International,8.52,13,0.147,0.174,Deposition Tools,Netherlands,60
+Arm,8.21,14,0.167,0.188,Core IP,United Kingdom,56
+TSMC,8.09,15,0.176,0.203,Foundry,Taiwan,15
+Samsung,7.95,16,0.186,0.217,IDM / Fab-lite,South Korea,2
+Advantest,7.44,17,0.228,0.232,Testing Equipment,Japan,62
+SK Hynix,7.41,18,0.231,0.246,DRAM and NAND IDM,South Korea,65
+Daifuku,7.29,19,0.241,0.261,Automated Material Handling (Photomask) / Automated Material Handling (Wafer),Japan,33
+ASM Pacific Technologies (ASMPT),7.28,20,0.242,0.275,Integrated Assembly Tools,Singapore,38
+Screen Holdings,7.2,21,0.25,0.29,Wafer Cleaning Tools / Resist Processing Tools,Japan,48
+Imagination Technologies,6.91,22,0.278,0.304,Core IP,United Kingdom,25
+AMD,6.85,23,0.284,0.319,Fabless,United States,57
+Alphabet (Google),6.79,24,0.29,0.333,System Company,United States,7
+STMicroelectronics,6.78,25,0.291,0.348,IDM / Fab-lite,Switzerland / France,6
+Cadence Design Systems,6.45,26,0.326,0.362,EDA Tools,United States,39
+Besi,6.19,27,0.355,0.377,Integrated Assembly Tools,Netherlands,51
+Micron Technology,6.07,28,0.369,0.391,DRAM and NAND IDM,United States,66
+Okamoto,5.74,29,0.409,0.406,Crystal Machining Tools,Japan,32
+Qualcomm,5.35,30,0.456,0.42,Fabless,United States,10
+SÜSS MicroTec,5.25,31,0.469,0.435,Wafer Bonders and Aligners,Germany,50
+Canon,5.19,32,0.476,0.449,DUV Lithography,Japan,43
+Materion,5.16,33,0.48,0.464,"Sputtering targets, materials",United States,70
+Keysight Technologies,5.15,34,0.481,0.478,Process Monitoring,United States,54
+Teradyne,5.05,35,0.494,0.493,Testing Equipment,United States,63
+Dai Nippon Printing,5.01,36,0.499,0.507,Photomasks (Mask Shop),Japan,52
+UMC,5.0,37,0.5,0.522,Foundry,Taiwan,17
+Nikon,4.86,38,0.517,0.536,DUV Lithography,Japan,40
+Brooks Automation,4.8,39,0.525,0.551,Automated Material Handling (Photomask),United States,20
+Kioxia,4.78,40,0.527,0.565,DRAM and NAND IDM,Japan,67
+PVA TePla,4.72,41,0.535,0.58,Crystal Growing Furnaces,Germany,30
+EV Group,4.5,42,0.562,0.594,Wafer Bonders and Aligners,Austria,16
+Amkor Technology,4.48,43,0.564,0.609,OSAT / Advanced Packaging,United States,11
+Tesla,4.46,44,0.567,0.623,System Company,United States,12
+MediaTek,4.18,45,0.601,0.638,Fabless,Taiwan,9
+ASML,4.15,46,0.605,0.652,EUV Lithography,Netherlands,37
+Alibaba,4.13,47,0.607,0.667,System Company,China,14
+SUMCO,3.72,48,0.655,0.681,Wafer Manufacturing,Japan,27
+Hua Hong,3.55,49,0.674,0.696,Foundry,China,19
+Infineon,3.37,50,0.693,0.71,IDM / Fab-lite,Germany,3
+Intel,3.24,51,0.707,0.725,IDM / Fab-lite,United States,1
+Nissin Ion,3.15,52,0.716,0.739,Ion Implanters,United States,35
+AGC,3.06,53,0.725,0.754,Photomasks (Blank),Japan,42
+SST,3.03,54,0.728,0.768,Core IP,United States,24
+SMIC,3.02,55,0.729,0.783,Foundry,China,18
+UniTest,3.01,56,0.73,0.797,Testing Equipment,South Korea,64
+Renesas,2.95,57,0.736,0.812,IDM / Fab-lite,Japan,5
+Keithley Instruments,2.85,58,0.746,0.826,Process Monitoring,United States,55
+Siemens EDA (Mentor Graphics),2.83,59,0.747,0.841,EDA Tools,Germany / United States,21
+JX Nippon Mining & Metals,2.68,60,0.761,0.855,"Sputtering targets, materials",Japan,69
+JCET,2.68,61,0.761,0.87,OSAT,China,58
+Synopsys,2.63,62,0.766,0.884,EDA Tools,United States,22
+GlobalWafers,2.49,63,0.778,0.899,Wafer Manufacturing,Taiwan,13
+Apple,2.31,64,0.793,0.913,System Company,United States,34
+YMTC,2.1,65,0.81,0.928,DRAM and NAND IDM,China,68
+ASE Group,2.01,66,0.817,0.942,OSAT / Advanced Packaging,Taiwan,47
+GlobalFoundries,1.92,67,0.823,0.957,Foundry,United States,28
+Siltronic,1.9,68,0.825,0.971,Wafer Manufacturing,Germany,29
+Tongfu Microelectronics,0.98,69,0.882,0.986,OSAT,China,59
+SMIT,0.62,70,0.899,1.0,Ion Implanters,Japan,36

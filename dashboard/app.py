@@ -105,27 +105,36 @@ filtered_nodes = nodes_df[
 # ------------------------------------------------------------------
 # Graph Construction
 # ------------------------------------------------------------------
+
 def build_network(filtered_nodes, edges_df):
     G = nx.DiGraph()
-    
-    # Add nodes
-    valid_companies = set(filtered_nodes["Company"].tolist())
+
+    filtered_nodes = filtered_nodes.dropna(subset=["id"])
+    filtered_nodes["id"] = filtered_nodes["id"].apply(lambda x: str(int(float(x))))
+
+    valid_ids = set(filtered_nodes["id"].tolist())
+
     for _, row in filtered_nodes.iterrows():
         G.add_node(
-            row["Company"],
+            row["id"],
+            name=row["Company"],
             z_score=row["Z''"],
             category=row["Value Chain Category"],
             country=row["Country"],
             stress=row["Stress (logistic)"]
         )
-    
-    # Add edges only between valid nodes
+
     for _, row in edges_df.iterrows():
-        u, v = row["company_a"], row["company_b"]
-        if u in valid_companies and v in valid_companies:
-            if row["supplier"]: G.add_edge(u, v, strength=row["relationship_strength"])
-            if row["customer"]: G.add_edge(v, u, strength=row["relationship_strength"])
-                
+        try:
+            u = str(int(float(row["a_id"])))
+            v = str(int(float(row["b_id"])))
+        except (ValueError, TypeError):
+            continue
+
+        if u in valid_ids and v in valid_ids:
+            if row.get("supplier"): G.add_edge(u, v, strength=row["relationship_strength"])
+            if row.get("customer"): G.add_edge(v, u, strength=row["relationship_strength"])
+
     return G
 
 G = build_network(filtered_nodes, edges_df)
@@ -186,9 +195,8 @@ with tab1:
             # HTML for hover
             title = f"<b>{node}</b><br>Category: {attrs['category']}<br>Z'' Score: {attrs['z_score']:.2f}"
             net.add_node(
-                node, 
-                label=node if show_labels else " ", 
-                title=title, 
+                str(node),
+                label=attrs.get("name", str(node)) if show_labels else " ",               title=title,
                 color=color, 
                 size=25,
                 borderWidth=0,
@@ -198,20 +206,25 @@ with tab1:
         # Add edges
         for u, v, data in G.edges(data=True):
             strength = data.get('strength', 1)
-            # Exponential scaling to create a large spread between widths (1->1, 2->2.5, 3->5, 4->8.5, 5->13)
-            width_map = {1: 1, 2: 2.5, 3: 5.0, 4: 8.5, 5: 13.0}
-            width = width_map.get(int(strength), strength * 2)
-            
-            # Physics: stronger ties mean shorter spring length (they pull closer)
-            spring_len = max(30, 200 - (strength * 30))
-            
-            net.add_edge(
-                u, v, 
-                value=width, 
-                title=f"Strength: {strength}", 
-                color={"color": "#b3b3b3", "highlight": "#555"},
-                length=spring_len
-            )
+
+            u_clean = str(u).replace(".0", "")
+            v_clean = str(v).replace(".0", "")
+
+            if u_clean in net.get_nodes() and v_clean in net.get_nodes():
+                # Exponential scaling to create a large spread between widths (1->1, 2->2.5, 3->5, 4->8.5, 5->13)
+                width_map = {1: 1, 2: 2.5, 3: 5.0, 4: 8.5, 5: 13.0}
+                width = width_map.get(int(strength), strength * 2)
+
+                # Physics: stronger ties mean shorter spring length (they pull closer)
+                spring_len = max(30, 200 - (strength * 30))
+
+                net.add_edge(
+                    u, v,
+                    value=width,
+                    title=f"Strength: {strength}",
+                    color={"color": "#b3b3b3", "highlight": "#555"},
+                    length=spring_len
+                )
             
         # Save and render interactively
         # Use a consistent path for the temporary file
@@ -324,7 +337,7 @@ with tab2:
         st.dataframe(filtered_nodes.sort_values("Ranking"), use_container_width=True, hide_index=True)
     
     with st.expander("🔗 Raw Dependency Data", expanded=False):
-        valid_companies = set(filtered_nodes["Company"].tolist())
+        valid_companies = set(filtered_nodes["id"].tolist())
         display_edges = edges_df[
             (edges_df["company_a"].isin(valid_companies)) |
             (edges_df["company_b"].isin(valid_companies))
