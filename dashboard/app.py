@@ -19,12 +19,14 @@ from pyvis.network import Network
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
+from src.scenarios import run_idiosyncratic_shock, run_sector_shock, run_systemic_shock
+from src.propagation_engine import compute_centrality, compute_hhi, compute_vulnerability, normalize_weight
+
 # ------------------------------------------------------------------
 # Page config
 # ------------------------------------------------------------------
 st.set_page_config(
     page_title="Semiconductor Supply Chain Risk",
-    page_icon="🔌",
     layout="wide",
 )
 
@@ -43,7 +45,34 @@ def load_nodes():
 @st.cache_data
 def load_edges():
     path = ROOT / "data" / "Dependency relationships.csv"
-    return pd.read_csv(path)
+    edges = pd.read_csv(path)
+    
+    # The IDs in Dependency relationships.csv don't match Final Table.
+    # We must remap them using the Company names.
+    nodes_df = load_nodes()
+    name_map = {
+        "Cadence": "Cadence Design Systems",
+        "Siemens": "Siemens EDA (Mentor Graphics)",
+        "Amkor": "Amkor Technology",
+        "Axcelis": "Axcelis Technologies",
+        "Globalfoundries": "GlobalFoundries",
+        "Micron": "Micron Technology"
+    }
+    edges["company_a"] = edges["company_a"].replace(name_map)
+    edges["company_b"] = edges["company_b"].replace(name_map)
+    
+    name_to_id = dict(zip(nodes_df["Company"], nodes_df["id"]))
+    edges["a_id"] = edges["company_a"].map(name_to_id)
+    edges["b_id"] = edges["company_b"].map(name_to_id)
+    
+    return edges
+
+@st.cache_data
+def compute_metrics(_G):
+    centrality = compute_centrality(_G)
+    hhi = compute_hhi(_G)
+    vulnerability = compute_vulnerability(_G, hhi)
+    return centrality, hhi, vulnerability
 
 # ------------------------------------------------------------------
 # Helper: Map Z'' to Zone Color
@@ -57,13 +86,19 @@ def get_zone_color(z):
         return "#f39c12"  # Grey (Yellow)
     return "#e74c3c"      # Distress (Red)
 
+def get_stress_color(stress):
+    if pd.isna(stress): return "#95a5a6"
+    if stress > 0.8: return "#e74c3c" # high stress
+    if stress > 0.4: return "#f39c12" # medium
+    return "#2ecc71" # low stress
+
 # ------------------------------------------------------------------
 # UI: Sidebar Settings & Filters
 # ------------------------------------------------------------------
-st.sidebar.title("⚙️ Dashboard Settings")
+st.sidebar.title("Dashboard Settings")
 
 # --- Visual Settings ---
-with st.sidebar.expander("💡 Visual Settings", expanded=True):
+with st.sidebar.expander("Visual Settings", expanded=True):
     show_labels = st.checkbox("Show Labels on Graph", value=True, help="Display company names permanently on the graph.")
     show_legend = st.checkbox("Show Risk Legend", value=True)
     physics_engine = st.selectbox(
@@ -74,12 +109,12 @@ with st.sidebar.expander("💡 Visual Settings", expanded=True):
     layout_stiffness = st.slider("Node Separation / Spread", 0.5, 5.0, 1.0) # Default to 1.0
 
 # --- Filters ---
-st.sidebar.title("🔍 Filters")
+st.sidebar.title("Filters")
 nodes_df = load_nodes()
 edges_df = load_edges()
 
 # Value Chain Filter
-with st.sidebar.expander("🏢 Value Chain Category", expanded=False):
+with st.sidebar.expander("Value Chain Category", expanded=False):
     categories = sorted(nodes_df["Value Chain Category"].dropna().unique().tolist())
     cat_mode = st.radio("Category Filter Mode", ["All", "Custom"], index=0, key="cat_mode", horizontal=True)
     if cat_mode == "Custom":
@@ -88,7 +123,7 @@ with st.sidebar.expander("🏢 Value Chain Category", expanded=False):
         selected_categories = categories
 
 # Country Filter
-with st.sidebar.expander("🌍 Country", expanded=False):
+with st.sidebar.expander("Country", expanded=False):
     countries = sorted(nodes_df["Country"].dropna().unique().tolist())
     country_mode = st.radio("Country Filter Mode", ["All", "Custom"], index=0, key="country_mode", horizontal=True)
     if country_mode == "Custom":
@@ -101,6 +136,26 @@ filtered_nodes = nodes_df[
     (nodes_df["Value Chain Category"].isin(selected_categories)) &
     (nodes_df["Country"].isin(selected_countries))
 ]
+
+# --- Shock Scenarios ---
+st.sidebar.title("Shock Scenarios")
+with st.sidebar.expander("Scenario Configuration", expanded=False):
+    scenario_type = st.selectbox("Scenario Type", ["None", "Idiosyncratic Shock", "Sector Shock", "Systemic Shock"])
+    
+    target_firm = None
+    target_sector = None
+    target_id = None
+    if scenario_type == "Idiosyncratic Shock":
+        target_firm = st.selectbox("Target Firm", sorted(nodes_df["Company"].dropna().unique().tolist()))
+        firm_matches = nodes_df[nodes_df["Company"] == target_firm]
+        if not firm_matches.empty:
+            target_id = str(int(float(firm_matches["id"].iloc[0])))
+    elif scenario_type == "Sector Shock":
+        target_sector = st.selectbox("Target Sector", categories)
+        
+    shock_delta = st.slider("Shock Magnitude (Ds)", 0.0, 1.0, 0.35, 0.05)
+    alpha_decay = st.slider("Propagation Alpha", 0.0, 1.0, 0.1, 0.05)
+    run_shock = st.button("Run Simulation")
 
 # ------------------------------------------------------------------
 # Graph Construction
@@ -121,6 +176,7 @@ def build_network(filtered_nodes, edges_df):
             z_score=row["Z''"],
             category=row["Value Chain Category"],
             country=row["Country"],
+            stress_baseline=row["Stress (logistic)"],
             stress=row["Stress (logistic)"]
         )
 
@@ -132,27 +188,72 @@ def build_network(filtered_nodes, edges_df):
             continue
 
         if u in valid_ids and v in valid_ids:
-            if row.get("supplier"): G.add_edge(u, v, strength=row["relationship_strength"])
-            if row.get("customer"): G.add_edge(v, u, strength=row["relationship_strength"])
+            strength = float(row["relationship_strength"])
+            weight = normalize_weight(strength)
+            is_sup = str(row.get("supplier", False)).strip().lower() == "true"
+            is_cus = str(row.get("customer", False)).strip().lower() == "true"
+            is_pat = str(row.get("partner", False)).strip().lower() == "true"
+            
+            if is_sup: G.add_edge(u, v, strength=strength, weight=weight)
+            if is_cus: G.add_edge(v, u, strength=strength, weight=weight)
+            if is_pat:
+                G.add_edge(u, v, strength=strength/2.0, weight=weight/2.0)
+                G.add_edge(v, u, strength=strength/2.0, weight=weight/2.0)
+
+    # Remove isolated nodes
+    isolated = list(nx.isolates(G))
+    G.remove_nodes_from(isolated)
 
     return G
 
 G = build_network(filtered_nodes, edges_df)
 
+# Remove firms from the dashboard data that don't have a connection
+filtered_nodes = filtered_nodes[filtered_nodes["id"].apply(lambda x: str(int(float(x))) if pd.notna(x) else "").isin(G.nodes())]
+
+# Compute metrics for the current graph
+centrality, hhi, vulnerability = compute_metrics(G)
+
+# Handle Simulation Execution
+if "scenario_results" not in st.session_state:
+    st.session_state.scenario_results = None
+
+if run_shock:
+    if scenario_type == "Idiosyncratic Shock" and target_id:
+        st.session_state.scenario_results = run_idiosyncratic_shock(G, centrality, vulnerability, target_id, shock_delta, alpha_decay)
+    elif scenario_type == "Sector Shock" and target_sector:
+        st.session_state.scenario_results = run_sector_shock(G, centrality, vulnerability, target_sector, shock_delta, alpha_decay)
+    elif scenario_type == "Systemic Shock":
+        st.session_state.scenario_results = run_systemic_shock(G, centrality, vulnerability, shock_delta, alpha_decay)
+    else:
+        st.session_state.scenario_results = None
+
+if scenario_type == "None":
+    st.session_state.scenario_results = None
+
+scenario_results = st.session_state.scenario_results
+
 # ------------------------------------------------------------------
 # Layout & Tabs
 # ------------------------------------------------------------------
-st.title("🔌 Semiconductor Supply Chain Risk Dashboard")
+st.title("Semiconductor Supply Chain Risk Dashboard")
 
-tab1, tab2 = st.tabs(["🌐 Network View", "📊 Data Explorer"])
+tab1, tab2 = st.tabs(["Network View", "Data Explorer"])
 
 # ==================================================================
 # TAB 1: Network View
 # ==================================================================
 with tab1:
+    view_mode = "Before (Z'' Score)"
+    if scenario_results:
+        st.success(f"Simulation Active: {scenario_results['name']}")
+        view_mode = st.radio("View Mode", ["Before (Z'' Score)", "After (Stress Score)"], horizontal=True)
+
     if show_legend:
-        # High-visibility legend
-        st.info("💡 **Risk Zones (Z'' Score):** &nbsp;&nbsp; 🟢 Safe (>2.6) &nbsp;&nbsp; | &nbsp;&nbsp; 🟡 Grey (1.1-2.6) &nbsp;&nbsp; | &nbsp;&nbsp; 🔴 Distress (≤1.1) &nbsp;&nbsp; | &nbsp;&nbsp; ⚫ Unknown")
+        if view_mode == "Before (Z'' Score)":
+            st.info("**Risk Zones (Z'' Score):** &nbsp;&nbsp; Safe (>2.6) &nbsp;&nbsp; | &nbsp;&nbsp; Grey (1.1-2.6) &nbsp;&nbsp; | &nbsp;&nbsp; Distress (≤1.1) &nbsp;&nbsp; | &nbsp;&nbsp; Unknown")
+        else:
+            st.info("**Stress Score:** &nbsp;&nbsp; Low (≤0.4) &nbsp;&nbsp; | &nbsp;&nbsp; Medium (0.4-0.8) &nbsp;&nbsp; | &nbsp;&nbsp; High (>0.8) &nbsp;&nbsp; | &nbsp;&nbsp; Unknown")
 
     if len(G.nodes) == 0:
         st.warning("No nodes match the selected filters.")
@@ -160,7 +261,7 @@ with tab1:
         # Build Pyvis Network (directed=False to remove arrows)
         net = Network(height="700px", width="100%", bgcolor="#ffffff", font_color="#333", directed=False)
         
-        # Configure physics for an "Obsidian-style" interactive constellation
+        # Configure physics
         if "Barnes-Hut" in physics_engine:
             net.barnes_hut(
                 gravity=-8000 * layout_stiffness, 
@@ -191,15 +292,40 @@ with tab1:
         # Add nodes
         for node in G.nodes():
             attrs = G.nodes[node]
-            color = get_zone_color(attrs['z_score'])
-            # HTML for hover
-            title = f"<b>{node}</b><br>Category: {attrs['category']}<br>Z'' Score: {attrs['z_score']:.2f}"
+            
+            if view_mode == "After (Stress Score)" and scenario_results:
+                stress_val = scenario_results["stress_final"].get(node, attrs.get("stress", 0))
+                color = get_stress_color(stress_val)
+                delta = scenario_results['stress_change'].get(node, 0)
+                title = f"<b>{attrs.get('name', str(node))}</b><br>Category: {attrs['category']}<br>Final Stress: {stress_val:.3f} (Δ {delta:+.3f})"
+                
+                # Highlight shocked nodes
+                is_shocked = node in scenario_results.get("shocked_firms", [])
+                border_width = 3 if is_shocked else 0
+                border_color = "#000000" if is_shocked else color
+            else:
+                color = get_zone_color(attrs['z_score'])
+                title = f"<b>{attrs.get('name', str(node))}</b><br>Category: {attrs['category']}<br>Z'' Score: {attrs['z_score']:.2f}"
+                border_width = 0
+                border_color = color
+
+            # Pyvis workaround for border color
+            color_dict = {
+                "background": color,
+                "border": border_color,
+                "highlight": {
+                    "background": color,
+                    "border": border_color
+                }
+            }
+
             net.add_node(
                 str(node),
-                label=attrs.get("name", str(node)) if show_labels else " ",               title=title,
-                color=color, 
+                label=attrs.get("name", str(node)) if show_labels else " ",
+                title=title,
+                color=color_dict, 
                 size=25,
-                borderWidth=0,
+                borderWidth=border_width,
                 font={"size": 16, "color": "#333"}
             )
             
@@ -211,11 +337,8 @@ with tab1:
             v_clean = str(v).replace(".0", "")
 
             if u_clean in net.get_nodes() and v_clean in net.get_nodes():
-                # Exponential scaling to create a large spread between widths (1->1, 2->2.5, 3->5, 4->8.5, 5->13)
                 width_map = {1: 1, 2: 2.5, 3: 5.0, 4: 8.5, 5: 13.0}
                 width = width_map.get(int(strength), strength * 2)
-
-                # Physics: stronger ties mean shorter spring length (they pull closer)
                 spring_len = max(30, 200 - (strength * 30))
 
                 net.add_edge(
@@ -227,7 +350,6 @@ with tab1:
                 )
             
         # Save and render interactively
-        # Use a consistent path for the temporary file
         tmp_file = ROOT / "dashboard" / "pyvis_graph.html"
         net.save_graph(str(tmp_file))
         
@@ -240,6 +362,25 @@ with tab1:
 # TAB 2: Data Explorer
 # ==================================================================
 with tab2:
+    if scenario_results:
+        st.subheader("Simulation Results")
+        st.write(f"**Scenario:** {scenario_results['name']} | **Rounds:** {scenario_results['rounds']}")
+        
+        stress_changes = scenario_results["stress_change"]
+        affected_df = pd.DataFrame([
+            {"Company": G.nodes[n].get("name", n), "Baseline Stress": G.nodes[n].get("stress", 0), "Final Stress": scenario_results["stress_final"][n], "Delta Stress": stress_changes[n]}
+            for n in stress_changes
+        ]).sort_values("Delta Stress", ascending=False).head(15)
+        
+        fig_sim = px.bar(
+            affected_df, x="Delta Stress", y="Company", orientation='h',
+            color="Final Stress", color_continuous_scale="Reds",
+            title="Top Affected Firms (Δ Stress)"
+        )
+        fig_sim.update_layout(height=400, yaxis_autorange="reversed", yaxis_title=None)
+        st.plotly_chart(fig_sim, use_container_width=True)
+        st.markdown("---")
+
     # --- Metric Row ---
     m1, m2, m3, m4 = st.columns(4)
     avg_z = filtered_nodes["Z''"].mean()
@@ -255,8 +396,7 @@ with tab2:
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("🎯 Risk Zone Distribution")
-        # Assign zones for the chart
+        st.subheader("Risk Zone Distribution")
         def get_zone_label(z):
             if pd.isna(z): return "Unknown"
             if z > 2.6: return "Safe"
@@ -274,7 +414,7 @@ with tab2:
         st.plotly_chart(fig_pie, use_container_width=True)
 
     with col2:
-        st.subheader("🏢 Financial Health by Category")
+        st.subheader("Financial Health by Category")
         fig_box = px.box(
             filtered_nodes, x="Value Chain Category", y="Z''", 
             color="Value Chain Category",
@@ -290,7 +430,7 @@ with tab2:
     col3, col4 = st.columns(2)
 
     with col3:
-        st.subheader("🌍 Geographic Risk (Avg Z'')")
+        st.subheader("Geographic Risk (Avg Z'')")
         geo_df = filtered_nodes.groupby("Country")["Z''"].mean().reset_index().sort_values("Z''")
         fig_geo = px.bar(
             geo_df, x="Z''", y="Country", orientation='h',
@@ -301,7 +441,7 @@ with tab2:
         st.plotly_chart(fig_geo, use_container_width=True)
 
     with col4:
-        st.subheader("🔥 Top 10 High-Stress Companies")
+        st.subheader("Top 10 High-Stress Companies (Baseline)")
         stress_df = filtered_nodes.sort_values("Stress (logistic)", ascending=False).head(10)
         fig_stress = px.bar(
             stress_df, x="Stress (logistic)", y="Company",
@@ -314,12 +454,10 @@ with tab2:
     st.markdown("---")
 
     # --- Row 3: Connectivity ---
-    st.subheader("🕸️ Supply Chain Hubs (Dependency Connectivity)")
-    # Calculate degree from edges
+    st.subheader("Supply Chain Hubs (Dependency Connectivity)")
     all_conns = pd.concat([edges_df["company_a"], edges_df["company_b"]])
     conn_counts = all_conns.value_counts().reset_index()
     conn_counts.columns = ["Company", "Connections"]
-    # Filter to only companies in our filtered node list
     conn_counts = conn_counts[conn_counts["Company"].isin(filtered_nodes["Company"])]
     
     fig_conn = px.bar(
@@ -333,10 +471,10 @@ with tab2:
     st.markdown("---")
     
     # --- Data Tables ---
-    with st.expander("📄 Raw Company Data", expanded=False):
+    with st.expander("Raw Company Data", expanded=False):
         st.dataframe(filtered_nodes.sort_values("Ranking"), use_container_width=True, hide_index=True)
     
-    with st.expander("🔗 Raw Dependency Data", expanded=False):
+    with st.expander("Raw Dependency Data", expanded=False):
         valid_companies = set(filtered_nodes["id"].tolist())
         display_edges = edges_df[
             (edges_df["company_a"].isin(valid_companies)) |

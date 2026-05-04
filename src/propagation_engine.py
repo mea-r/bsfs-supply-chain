@@ -16,14 +16,18 @@ import pandas as pd
 
 
 # Global constants
-ALPHA = 0.55 # change to ~0.3 for more realistic scenario
+ALPHA = 0.1 # change to ~0.3 for more realistic scenario
 EPSILON = 1e-4 
 MAX_STEPS = 50 
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FIRMS_CSV   = os.path.join(BASE_DIR, "Final Table (csv).csv")
-EDGES_CSV   = os.path.join(BASE_DIR, "Dependency relationships.csv")
-OUTPUT_JSON = os.path.join(BASE_DIR, "propagation_results.json")
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+PROJECT_ROOT = os.path.dirname(CURRENT_DIR)
+
+FIRMS_CSV   = os.path.join(PROJECT_ROOT, "data", "Final Table (csv).csv")
+EDGES_CSV   = os.path.join(PROJECT_ROOT, "data", "Dependency relationships.csv")
+
+OUTPUT_JSON = os.path.join(CURRENT_DIR, "propagation_results.json")
 
 
 
@@ -178,6 +182,7 @@ def propagate(
     delta_init: dict,
     centrality: dict,
     vulnerability: dict,
+    alpha: float = ALPHA,
 ) -> tuple:
     
     """
@@ -202,7 +207,7 @@ def propagate(
                 w_ij = G[i][j]["weight"] 
                 c_i  = centrality[i]
                 inflow += w_ij * (1.0 + c_i) * (1.0 + v_j) * delta.get(i, 0.0)
-            new_delta[j] = ALPHA * inflow
+            new_delta[j] = alpha * inflow
 
     
         effective_delta: dict = {}
@@ -232,6 +237,7 @@ def run_scenario(
     shock_delta: float,
     centrality: dict,
     vulnerability: dict,
+    alpha: float = ALPHA,
 ) -> dict:
    
    #baseline 
@@ -249,7 +255,7 @@ def run_scenario(
         delta_init[firm]   = effective_shock
 
     stress_final, delta_history = propagate(
-        G, stress_init, delta_init, centrality, vulnerability
+        G, stress_init, delta_init, centrality, vulnerability, alpha=alpha
     )
 
     # Δ stress = change relative to baseline 
