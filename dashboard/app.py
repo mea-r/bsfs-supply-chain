@@ -30,12 +30,10 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
-st.markdown("<style>.block-container {padding-top: 1.5rem; padding-bottom: 1.5rem;}</style>", unsafe_allow_html=True)
-
 st.markdown("""
     <style>
         .block-container {
-            padding-top: 4rem !important;
+            padding-top: 2.5rem !important;
             padding-bottom: 0rem !important;
             padding-left: 1.5rem !important;
             padding-right: 1.5rem !important;
