@@ -93,13 +93,25 @@ def compute_metrics(_G):
 # ------------------------------------------------------------------
 def get_stress_color(stress):
     if pd.isna(stress): return "#95a5a6"
-    if stress > 0.9: return "#e74c3c"
-    if stress > 0.5: return "#f39c12"
-    return "#2ecc71"
+    stress = max(0.0, min(1.0, stress))
+    if stress < 0.85:
+        # Green to Yellow (stays greener for much longer)
+        ratio = stress / 0.85
+        r = int(46 + ratio * (241 - 46))
+        g = int(204 + ratio * (196 - 204))
+        b = int(113 + ratio * (15 - 113))
+    else:
+        # Yellow to Red (steep ramp at the top end)
+        ratio = (stress - 0.85) / 0.15
+        r = int(241 + ratio * (231 - 241))
+        g = int(196 + ratio * (76 - 196))
+        b = int(15 + ratio * (60 - 15))
+    return f"#{r:02x}{g:02x}{b:02x}"
 
 def get_delta_color_fill(delta, max_delta):
     if delta <= 0.001: return "#cccccc"
-    ratio = min(delta / (max_delta + 1e-9), 1.0)
+    # Strong non-linear scaling to exaggerate small but meaningful changes
+    ratio = min((delta / (max_delta + 1e-9)) ** 0.35, 1.0)
     r = 255
     g = int(204 * (1 - ratio))
     b = int(204 * (1 - ratio))
@@ -210,8 +222,6 @@ with left_col:
         shock_delta = 0.4
         alpha_decay = 0.1
 
-    top_impacted_container = st.container()
-
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### Controls")
     
@@ -252,6 +262,8 @@ if "scenario_results" not in st.session_state:
     st.session_state.scenario_results = None
 if "view_mode" not in st.session_state:
     st.session_state.view_mode = "Baseline"
+if "graph_filter_selection" not in st.session_state:
+    st.session_state["graph_filter_selection"] = "Full Network"
 
 if run_shock or quick_run:
     if scenario_type == "Idiosyncratic" and target_id:
@@ -268,52 +280,13 @@ if run_shock or quick_run:
 
 scenario_results = st.session_state.scenario_results
 
-with top_impacted_container:
-    if scenario_results:
-        st.markdown("---")
-        st.markdown("### Top Impacted")
-        stress_changes = scenario_results["stress_change"]
-        affected_data = []
-        for n in stress_changes:
-            if stress_changes[n] > 0.001:
-                affected_data.append({
-                    "Firm": G.nodes[n].get("name", n),
-                    "Δ Stress": stress_changes[n]
-                })
-        affected_df = pd.DataFrame(affected_data)
-        if not affected_df.empty:
-            affected_df = affected_df.sort_values("Δ Stress", ascending=False).head(5)
-            fig_sim = px.bar(
-                affected_df, x="Δ Stress", y="Firm", orientation="h",
-                color_discrete_sequence=["#ef553b"]
-            )
-            fig_sim.update_layout(
-                height=220, 
-                margin=dict(t=0, b=0, l=0, r=0), 
-                yaxis_autorange="reversed",
-                xaxis_title="", 
-                yaxis_title="",
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)"
-            )
-            fig_sim.update_xaxes(showgrid=False, zeroline=False, tickvals=[0, 0.2, 0.4])
-            fig_sim.update_yaxes(showgrid=False, zeroline=False)
-            st.plotly_chart(fig_sim, use_container_width=True, config={'displayModeBar': False})
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            total_firms = len(G.nodes)
-            avg_s = sum(scenario_results["stress_final"].values()) / total_firms
-            distressed = sum(1 for v in scenario_results["stress_final"].values() if v > 0.9)
-            st.write(f"**Distressed Firms (>0.9):** {distressed}")
-            st.write(f"**Average Network Stress:** {avg_s:.3f}")
-        else:
-            st.info("No propagation effects recorded.")
+
 
 # ------------------------------------------------------------------
 # Main Content
 # ------------------------------------------------------------------
 with right_col:
-    tab1, tab2 = st.tabs(["Network View", "Data Explorer"])
+    tab1, tab2 = st.tabs(["Network View", "Analytical Results"])
 
     # ==================================================================
     # TAB 1: Network View
@@ -322,11 +295,52 @@ with right_col:
         view_mode = st.session_state.get("view_mode")
         if not view_mode:
             view_mode = "Baseline"
+            
+        # Retrieve filter selection from the dropdown below the graph
+        graph_filter = st.session_state.get("graph_filter_selection", "Full Network")
+        
+        if scenario_results:
+            raw_name = scenario_results.get('name', '')
+            if "Idiosyncratic Shock:" in raw_name:
+                try:
+                    node_id = raw_name.split(": ")[-1].strip()
+                    firm_name = G.nodes[node_id].get("name", node_id) if node_id in G.nodes else node_id
+                    overlay_name = f"Idiosyncratic Shock: {firm_name}"
+                except Exception:
+                    overlay_name = raw_name
+            else:
+                overlay_name = raw_name
+            
+            st.markdown(f"""
+            <div style="display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; font-weight: 600; color: #333; background-color: rgba(255, 255, 255, 0.95); padding: 7px 12px; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 12px;">
+                Simulation Active: <span style="color: #e74c3c; margin-left: 4px;">{overlay_name}</span>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div style="display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; font-weight: 600; color: #555; background-color: rgba(255, 255, 255, 0.95); padding: 7px 12px; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 12px;">
+                Simulation Status: <span style="color: #777; margin-left: 4px; font-weight: normal;">No active simulation (Baseline)</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        sub_G = G.copy()
+        if scenario_results and graph_filter != "Full Network":
+            if graph_filter in ["1st Degree", "2nd Degree"]:
+                radius = 1 if graph_filter == "1st Degree" else 2
+                shocked = scenario_results.get("shocked_firms", [])
+                if shocked:
+                    undir_G = G.to_undirected()
+                    nodes_to_keep = set()
+                    for f in shocked:
+                        if f in undir_G:
+                            ego = nx.ego_graph(undir_G, f, radius=radius)
+                            nodes_to_keep.update(ego.nodes())
+                    sub_G = G.subgraph(list(nodes_to_keep)).copy()
 
-        if len(G.nodes) == 0:
+        if len(sub_G.nodes) == 0:
             st.warning("No nodes match the selected filters.")
         else:
-            net = Network(height="700px", width="100%", bgcolor="#ffffff", font_color="#333", directed=False)
+            net = Network(height="650px", width="100%", bgcolor="#ffffff", font_color="#333", directed=False)
             
             if "Barnes-Hut" in physics_engine:
                 net.barnes_hut(
@@ -359,7 +373,7 @@ with right_col:
             if scenario_results:
                 max_delta = max(list(scenario_results.get("stress_change", {}).values()) + [0])
 
-            for node in G.nodes():
+            for node in sub_G.nodes():
                 attrs = G.nodes[node]
                 
                 stress_baseline = attrs.get("stress_baseline", 0)
@@ -375,17 +389,17 @@ with right_col:
                 
                 if view_mode == "Impact":
                     color = get_delta_color_fill(delta, max_delta) if scenario_results else "#cccccc"
-                    title = f"<b>{attrs.get('name', str(node))}</b><br>Category: {attrs['category']}<br>Δ Stress: {delta:+.3f}"
+                    title = f"{attrs.get('name', str(node))}\nCategory: {attrs['category']}\nΔ Stress: {delta:+.3f}"
                     border_width = 3 if is_shocked else 1
                     border_color = "#000000" if is_shocked else "#999999"
                 elif view_mode == "Final":
                     color = get_stress_color(stress_final)
-                    title = f"<b>{attrs.get('name', str(node))}</b><br>Category: {attrs['category']}<br>Final Stress: {stress_final:.3f} (Δ {delta:+.3f})"
+                    title = f"{attrs.get('name', str(node))}\nCategory: {attrs['category']}\nFinal Stress: {stress_final:.3f} (Δ {delta:+.3f})"
                     border_width = 3 if is_shocked else 0
                     border_color = "#000000" if is_shocked else color
                 else: # Baseline
                     color = get_stress_color(stress_baseline)
-                    title = f"<b>{attrs.get('name', str(node))}</b><br>Category: {attrs['category']}<br>Baseline Stress: {stress_baseline:.3f}"
+                    title = f"{attrs.get('name', str(node))}\nCategory: {attrs['category']}\nBaseline Stress: {stress_baseline:.3f}"
                     border_width = 0
                     border_color = color
 
@@ -405,10 +419,16 @@ with right_col:
                     color=color_dict, 
                     size=25,
                     borderWidth=border_width,
-                    font={"size": 16, "color": "#333"}
+                    font={
+                        "size": 18, 
+                        "color": "#111111", 
+                        "strokeWidth": 3,
+                        "strokeColor": "rgba(255, 255, 255, 0.85)",
+                        "face": "sans-serif"
+                    }
                 )
                 
-            for u, v, data in G.edges(data=True):
+            for u, v, data in sub_G.edges(data=True):
                 strength = data.get("strength", 1)
 
                 u_clean = str(u).replace(".0", "")
@@ -432,21 +452,43 @@ with right_col:
             
             with open(tmp_file, "r", encoding="utf-8") as f:
                 source_code = f.read()
+            
+            # Inject interaction hover config and randomSeed for deterministic layout
+            source_code = source_code.replace(
+                '"interaction": {',
+                '"layout": {"randomSeed": 42},\n    "interaction": {\n        "hover": true,\n        "tooltipDelay": 50,'
+            )
+            
+            css_injection = """
+            <style>
+            #mynetwork { border: none !important; outline: none !important; }
+            .card { border: none !important; background: transparent !important; }
+            .vis-tooltip {
+                position: absolute;
+                padding: 12px 14px;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                font-size: 14px;
+                color: #333 !important;
+                background-color: rgba(255, 255, 255, 0.98) !important;
+                border: 1px solid #ddd !important;
+                border-radius: 8px !important;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+                pointer-events: none;
+                z-index: 10000;
+                line-height: 1.6;
+                white-space: pre-wrap !important;
+                font-weight: 500;
+            }
+            </style>
+            """
+            source_code = source_code.replace("</head>", f"{css_injection}\n</head>")
                 
-            if scenario_results:
-                overlay_html = f"""
-                <div style="position: absolute; top: 15px; left: 15px; font-family: sans-serif; font-size: 14px; font-weight: 600; color: #444; background-color: rgba(255, 255, 255, 0.85); padding: 6px 12px; border-radius: 4px; z-index: 10;">
-                    Simulation Active: {scenario_results['name']}
-                </div>
-                """
-                source_code = source_code.replace("<body>", f"<body>{overlay_html}")
-                
-            components.html(source_code, height=700)
+            components.html(source_code, height=650)
             
             st.markdown("<br>", unsafe_allow_html=True)
             has_sim = scenario_results is not None
             
-            c_tabs, c_leg = st.columns([1, 2])
+            c_tabs, c_filter, c_leg = st.columns([1.2, 1.2, 2.0])
             with c_tabs:
                 st.segmented_control(
                     "View Mode", 
@@ -456,128 +498,129 @@ with right_col:
                     disabled=not has_sim,
                     selection_mode="single"
                 )
+            with c_filter:
+                st.markdown("""
+                <style>
+                div[data-testid="stSelectbox"] {
+                    max-width: 200px !important;
+                    margin-top: -16px !important;
+                }
+                div[data-testid="stSelectbox"] [data-baseweb="select"] {
+                    background-color: #ffffff !important;
+                    border: 1px solid #ccd4dc !important;
+                    border-radius: 8px !important;
+                }
+                div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
+                    background-color: transparent !important;
+                    border: none !important;
+                    min-height: 32px !important;
+                    height: 32px !important;
+                    text-align: center !important;
+                    justify-content: center !important;
+                }
+                div[data-testid="stSelectbox"] [data-baseweb="select"] div {
+                    text-align: center !important;
+                    justify-content: center !important;
+                    font-size: 13.5px !important;
+                }
+                </style>
+                """, unsafe_allow_html=True)
+                st.selectbox(
+                    "Filter Graph",
+                    ["Full Network", "1st Degree", "2nd Degree"],
+                    key="graph_filter_selection",
+                    label_visibility="collapsed",
+                    disabled=not has_sim
+                )
             with c_leg:
                 if show_legend:
                     if view_mode == "Impact":
-                        st.markdown("<div style='text-align: right; padding-top: 5px; color: #555; font-size: 14px;'><b>Impact (Δ Stress):</b> &nbsp; Gray (No Change) &nbsp; → &nbsp; Red (High Change)</div>", unsafe_allow_html=True)
+                        st.markdown("<div style='text-align: right; padding-top: 5px; color: #555; font-size: 14px;'><b>Impact (Δ Stress):</b> &nbsp; Gray (No Change) &nbsp; → &nbsp; Bright Red (High Change)</div>", unsafe_allow_html=True)
                     else:
-                        st.markdown("<div style='text-align: right; padding-top: 5px; color: #555; font-size: 14px;'><b>Stress Score:</b> &nbsp; Low (≤0.5) &nbsp; | &nbsp; Medium (0.5-0.9) &nbsp; | &nbsp; High (>0.9)</div>", unsafe_allow_html=True)
+                        st.markdown("<div style='text-align: right; padding-top: 5px; color: #555; font-size: 14px;'><b>Stress Score:</b> &nbsp; Green (Low) &nbsp; → &nbsp; Yellow (Med) &nbsp; → &nbsp; Red (High)</div>", unsafe_allow_html=True)
 
     # ==================================================================
-    # TAB 2: Data Explorer
+    # TAB 2: Analytical Results
     # ==================================================================
     with tab2:
-        if scenario_results:
-            st.subheader("Simulation Results")
-            st.write(f"**Scenario:** {scenario_results['name']} | **Rounds:** {scenario_results['rounds']}")
+        if not scenario_results:
+            st.info("Run a simulation to view analytical results.")
+        else:
+            st.subheader("Scenario Summary")
+            st.markdown("<div style='font-size: 13px; color: #555; margin-bottom: 10px;'>A macro-level overview of the simulated financial stress shock.</div>", unsafe_allow_html=True)
             
+            c1, c2, c3, c4 = st.columns([2.5, 1, 1.2, 1.5])
             stress_changes = scenario_results["stress_change"]
-            affected_df = pd.DataFrame([
-                {"Company": G.nodes[n].get("name", n), "Baseline Stress": G.nodes[n].get("stress", 0), "Final Stress": scenario_results["stress_final"][n], "Delta Stress": stress_changes[n]}
-                for n in stress_changes
-            ]).sort_values("Delta Stress", ascending=False).head(15)
+            final_stresses = scenario_results["stress_final"]
             
-            fig_sim = px.bar(
-                affected_df, x="Delta Stress", y="Company", orientation="h",
-                color="Final Stress", color_continuous_scale="Reds",
-                title="Top Affected Firms (Δ Stress)"
-            )
-            fig_sim.update_layout(height=400, yaxis_autorange="reversed", yaxis_title=None)
-            st.plotly_chart(fig_sim, use_container_width=True)
+            avg_base = sum(G.nodes[n].get("stress_baseline", 0) for n in G.nodes) / len(G.nodes)
+            avg_final = sum(final_stresses.values()) / len(G.nodes)
+            max_final = max(final_stresses.values())
+            distressed = sum(1 for v in final_stresses.values() if v > 0.9)
+            distress_share = distressed / len(G.nodes)
+            
+            c1.metric("Scenario", scenario_results["name"])
+            c2.metric("Propagation Rounds", scenario_results["rounds"])
+            c3.metric("Avg Final Stress", f"{avg_final:.3f}", delta=f"{avg_final - avg_base:+.3f}", delta_color="inverse")
+            c4.metric("Distressed Firms (>0.9)", f"{distressed} ({distress_share:.1%})")
+            
             st.markdown("---")
-
-        m1, m2, m3, m4 = st.columns(4)
-        avg_stress = filtered_nodes["Stress (logistic)"].mean()
-        distress_count = len(filtered_nodes[filtered_nodes["Stress (logistic)"] > 0.9])
-        m1.metric("Total Companies", len(filtered_nodes))
-        m2.metric("Avg Stress", f"{avg_stress:.3f}")
-        m3.metric("Firms in Distress (>0.9)", distress_count, delta=f"{distress_count/len(filtered_nodes):.0%}", delta_color="inverse")
-        m4.metric("Categories", filtered_nodes["Value Chain Category"].nunique())
-
-        st.markdown("---")
-
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("Stress Level Distribution")
-            def get_stress_label(s):
-                if pd.isna(s): return "Unknown"
-                if s > 0.9: return "High"
-                if s > 0.5: return "Medium"
-                return "Low"
             
-            plot_df = filtered_nodes.copy()
-            plot_df["Stress Level"] = plot_df["Stress (logistic)"].apply(get_stress_label)
-            fig_pie = px.pie(
-                plot_df, names="Stress Level", hole=0.4,
-                color="Stress Level",
-                color_discrete_map={"Low": "#2ecc71", "Medium": "#f39c12", "High": "#e74c3c", "Unknown": "#95a5a6"}
+            col_l, col_r = st.columns(2)
+            
+            with col_l:
+                st.subheader("Largest Stress Increases After Shock")
+                st.markdown("<div style='font-size: 13px; color: #555; margin-bottom: 10px;'>Firms exhibiting the greatest delta (Δ) in stress as a direct result of network propagation.</div>", unsafe_allow_html=True)
+                
+                affected_df = pd.DataFrame([
+                    {"Company": G.nodes[n].get("name", n), "Final Stress": final_stresses[n], "Delta Stress": stress_changes[n]}
+                    for n in stress_changes
+                ]).sort_values("Delta Stress", ascending=False).head(10)
+                
+                fig_sim = px.bar(
+                    affected_df, x="Delta Stress", y="Company", orientation="h",
+                    color="Delta Stress", color_continuous_scale="Reds",
+                )
+                fig_sim.update_layout(height=400, yaxis_autorange="reversed", yaxis_title=None, margin=dict(l=0, r=0, t=20, b=0))
+                st.plotly_chart(fig_sim, use_container_width=True)
+
+            with col_r:
+                st.subheader("Systemic Chokepoints")
+                st.markdown("<div style='font-size: 13px; color: #555; margin-bottom: 10px;'>Firms structurally positioned as critical transmission hubs, ranked by dependency connectivity.</div>", unsafe_allow_html=True)
+                
+                choke_data = []
+                for n in G.nodes:
+                    out_w = sum(d.get('weight', 0) for u, v, d in G.out_edges(n, data=True))
+                    in_w = sum(d.get('weight', 0) for u, v, d in G.in_edges(n, data=True))
+                    choke_data.append({"Company": G.nodes[n].get("name", n), "Systemic Importance": out_w + in_w})
+                
+                choke_df = pd.DataFrame(choke_data).sort_values("Systemic Importance", ascending=False).head(10)
+                
+                fig_choke = px.bar(
+                    choke_df, x="Systemic Importance", y="Company", orientation="h",
+                    color="Systemic Importance", color_continuous_scale="Purples",
+                )
+                fig_choke.update_layout(height=400, yaxis_autorange="reversed", yaxis_title=None, margin=dict(l=0, r=0, t=20, b=0))
+                st.plotly_chart(fig_choke, use_container_width=True)
+
+            st.markdown("---")
+            
+            st.subheader("Exposure by Value Chain Segment")
+            st.markdown("<div style='font-size: 13px; color: #555; margin-bottom: 10px;'>Average final stress distributed across semiconductor value-chain categories.</div>", unsafe_allow_html=True)
+            
+            cat_data = []
+            for n in G.nodes:
+                cat = G.nodes[n].get("category", "Unknown")
+                cat_data.append({"Category": cat, "Final Stress": final_stresses.get(n, G.nodes[n].get("stress_baseline", 0))})
+            
+            cat_df = pd.DataFrame(cat_data).groupby("Category")["Final Stress"].mean().reset_index().sort_values("Final Stress", ascending=False)
+            
+            fig_cat = px.bar(
+                cat_df, x="Final Stress", y="Category", orientation="h",
+                color="Final Stress", color_continuous_scale="Reds",
             )
-            fig_pie.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=300)
-            st.plotly_chart(fig_pie, use_container_width=True)
-
-        with col2:
-            st.subheader("Stress Distribution by Category")
-            fig_box = px.box(
-                filtered_nodes, x="Value Chain Category", y="Stress (logistic)", 
-                color="Value Chain Category",
-                points="all",
-                title="Baseline Stress Distribution"
-            )
-            fig_box.update_layout(showlegend=False, height=350, xaxis_title=None)
-            st.plotly_chart(fig_box, use_container_width=True)
-
-        st.markdown("---")
-
-        col3, col4 = st.columns(2)
-
-        with col3:
-            st.subheader("Geographic Risk (Avg Stress)")
-            geo_df = filtered_nodes.groupby("Country")["Stress (logistic)"].mean().reset_index().sort_values("Stress (logistic)", ascending=False)
-            fig_geo = px.bar(
-                geo_df, x="Stress (logistic)", y="Country", orientation="h",
-                color="Stress (logistic)", color_continuous_scale="Reds",
-                title="Higher is more risky"
-            )
-            fig_geo.update_layout(height=350, yaxis_title=None, yaxis_autorange="reversed")
-            st.plotly_chart(fig_geo, use_container_width=True)
-
-        with col4:
-            st.subheader("Top 10 High-Stress Companies (Baseline)")
-            stress_df = filtered_nodes.sort_values("Stress (logistic)", ascending=False).head(10)
-            fig_stress = px.bar(
-                stress_df, x="Stress (logistic)", y="Company",
-                orientation="h", color="Stress (logistic)", color_continuous_scale="Reds",
-                text_auto=".3f"
-            )
-            fig_stress.update_layout(height=350, yaxis_autorange="reversed", yaxis_title=None)
-            st.plotly_chart(fig_stress, use_container_width=True)
-
-        st.markdown("---")
-
-        st.subheader("Supply Chain Hubs (Dependency Connectivity)")
-        all_conns = pd.concat([edges_df["company_a"], edges_df["company_b"]])
-        conn_counts = all_conns.value_counts().reset_index()
-        conn_counts.columns = ["Company", "Connections"]
-        conn_counts = conn_counts[conn_counts["Company"].isin(filtered_nodes["Company"])]
-        
-        fig_conn = px.bar(
-            conn_counts.head(15), x="Connections", y="Company",
-            orientation="h", color="Connections", color_continuous_scale="Purples",
-            title="Most connected firms in the dataset"
-        )
-        fig_conn.update_layout(height=450, yaxis_autorange="reversed", yaxis_title=None)
-        st.plotly_chart(fig_conn, use_container_width=True)
-
-        st.markdown("---")
-        
-        with st.expander("Raw Company Data", expanded=False):
-            st.dataframe(filtered_nodes.sort_values("Ranking"), use_container_width=True, hide_index=True)
-        
-        with st.expander("Raw Dependency Data", expanded=False):
-            valid_companies = set(filtered_nodes["id"].tolist())
-            display_edges = edges_df[
-                (edges_df["company_a"].isin(valid_companies)) |
-                (edges_df["company_b"].isin(valid_companies))
-            ]
-            st.dataframe(display_edges, use_container_width=True, hide_index=True)
+            fig_cat.update_layout(height=400, yaxis_autorange="reversed", yaxis_title=None, margin=dict(l=0, r=0, t=20, b=0))
+            st.plotly_chart(fig_cat, use_container_width=True)
+            
+            st.markdown("---")
+            st.info("💡 **Main Network Interpretation:** Please switch to the **Network View** tab for a full topological visualization of the shock propagation. Node color represents final stress, node size reflects systemic importance, and edge thickness indicates dependency strength.")
