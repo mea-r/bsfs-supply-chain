@@ -44,6 +44,19 @@ st.markdown("""
             border-radius: 8px;
             background-color: #fafafa;
         }
+        /* Smaller font size and word wrap for all selectbox dropdown option lists */
+        div[role="listbox"] [role="option"],
+        div[role="listbox"] li,
+        div[role="listbox"] div {
+            font-size: 12px !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
+        /* Allow selected value text in selectboxes to wrap onto multiple lines as well */
+        div[data-testid="stSelectbox"] div {
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -135,6 +148,7 @@ def build_network(filtered_nodes, edges_df):
             name=row["Company"],
             z_score=row["Z''"],
             category=row["Value Chain Category"],
+            value_chain_category=row["Value Chain Category"],
             country=row["Country"],
             stress_baseline=row["Stress (logistic)"],
             stress=row["Stress (logistic)"]
@@ -172,6 +186,7 @@ nodes_df = load_nodes()
 edges_df = load_edges()
 
 categories = sorted(nodes_df["Value Chain Category"].dropna().unique().tolist())
+sector_counts = nodes_df["Value Chain Category"].value_counts().to_dict()
 countries = sorted(nodes_df["Country"].dropna().unique().tolist())
 
 left_col, right_col = st.columns([1, 3], gap="large")
@@ -189,7 +204,11 @@ with left_col:
         if not firm_matches.empty:
             target_id = str(int(float(firm_matches["id"].iloc[0])))
     elif scenario_type == "Sector":
-        target_sector = st.selectbox("Target Sector", categories)
+        target_sector = st.selectbox(
+            "Target Sector", 
+            categories,
+            format_func=lambda x: f"{x} ({sector_counts.get(x, 0)})"
+        )
         
     c_mag, c_alph = st.columns(2)
     shock_delta = c_mag.number_input("Magnitude", min_value=0.0, max_value=1.0, value=0.45, step=0.05, format="%.2f")
@@ -203,7 +222,7 @@ with left_col:
         st.session_state.scenario_results = None
         st.session_state.view_mode = "Baseline"
         st.rerun()
-
+    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### Quick Examples")
     ex1, ex2 = st.columns(2)
     quick_run = False
@@ -501,26 +520,31 @@ with right_col:
             with c_filter:
                 st.markdown("""
                 <style>
-                div[data-testid="stSelectbox"] {
+                div[data-baseweb="tab-panel"] div[data-testid="stSelectbox"] {
                     max-width: 200px !important;
                     margin-top: -16px !important;
                 }
-                div[data-testid="stSelectbox"] [data-baseweb="select"] {
+                div[data-baseweb="tab-panel"] div[data-testid="stSelectbox"] [data-baseweb="select"] {
                     background-color: #ffffff !important;
                     border: 1px solid #ccd4dc !important;
                     border-radius: 8px !important;
+                    height: 32px !important;
+                    min-height: 32px !important;
+                    display: flex !important;
+                    align-items: center !important;
                 }
-                div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
+                div[data-baseweb="tab-panel"] div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
                     background-color: transparent !important;
                     border: none !important;
-                    min-height: 32px !important;
-                    height: 32px !important;
-                    text-align: center !important;
-                    justify-content: center !important;
+                    height: 100% !important;
+                    min-height: 100% !important;
+                    display: flex !important;
+                    align-items: center !important;
                 }
-                div[data-testid="stSelectbox"] [data-baseweb="select"] div {
+                div[data-baseweb="tab-panel"] div[data-testid="stSelectbox"] [data-baseweb="select"] div {
                     text-align: center !important;
                     justify-content: center !important;
+                    align-items: center !important;
                     font-size: 13.5px !important;
                 }
                 </style>
@@ -623,4 +647,3 @@ with right_col:
             st.plotly_chart(fig_cat, use_container_width=True)
             
             st.markdown("---")
-            st.info("💡 **Main Network Interpretation:** Please switch to the **Network View** tab for a full topological visualization of the shock propagation. Node color represents final stress, node size reflects systemic importance, and edge thickness indicates dependency strength.")
