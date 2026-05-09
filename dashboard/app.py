@@ -57,6 +57,52 @@ st.markdown("""
             white-space: normal !important;
             word-break: break-word !important;
         }
+        /* Smaller font size and comfortable max-width margins for the Explanation tab (first tab) */
+        div[data-baseweb="tab-panel"]:first-of-type,
+        div[role="tabpanel"]:first-of-type,
+        div[data-testid="stTabPanel"] > div[role="tabpanel"]:first-of-type,
+        div[data-testid="stTabPanel"] [data-testid="stVerticalBlock"]:first-of-type {
+            max-width: 800px !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+        }
+        div[data-baseweb="tab-panel"]:first-of-type p,
+        div[data-baseweb="tab-panel"]:first-of-type li,
+        div[data-baseweb="tab-panel"]:first-of-type span,
+        div[data-baseweb="tab-panel"]:first-of-type blockquote,
+        div[role="tabpanel"]:first-of-type p,
+        div[role="tabpanel"]:first-of-type li,
+        div[role="tabpanel"]:first-of-type span,
+        div[role="tabpanel"]:first-of-type blockquote,
+        div[data-testid="stTabPanel"] [data-testid="stVerticalBlock"]:first-of-type p,
+        div[data-testid="stTabPanel"] [data-testid="stVerticalBlock"]:first-of-type li,
+        div[data-testid="stTabPanel"] [data-testid="stVerticalBlock"]:first-of-type span,
+        div[data-testid="stTabPanel"] [data-testid="stVerticalBlock"]:first-of-type blockquote,
+        div[role="tabpanel"]:first-of-type [data-testid="stMarkdownContainer"] p,
+        div[role="tabpanel"]:first-of-type [data-testid="stMarkdownContainer"] li,
+        div[role="tabpanel"]:first-of-type [data-testid="stMarkdownContainer"] span,
+        div[role="tabpanel"]:first-of-type [data-testid="stMarkdownContainer"] blockquote {
+            font-size: 12.5px !important;
+            line-height: 1.6 !important;
+        }
+        div[data-baseweb="tab-panel"]:first-of-type h2,
+        div[role="tabpanel"]:first-of-type h2,
+        div[data-testid="stTabPanel"] [data-testid="stVerticalBlock"]:first-of-type h2,
+        div[role="tabpanel"]:first-of-type [data-testid="stMarkdownContainer"] h2 {
+            font-size: 20px !important;
+            margin-top: 0px !important;
+            margin-bottom: 1rem !important;
+        }
+        div[data-baseweb="tab-panel"]:first-of-type h3,
+        div[role="tabpanel"]:first-of-type h3,
+        div[data-testid="stTabPanel"] [data-testid="stVerticalBlock"]:first-of-type h3,
+        div[role="tabpanel"]:first-of-type [data-testid="stMarkdownContainer"] h3 {
+            font-size: 14.5px !important;
+            margin-top: 1.5rem !important;
+            margin-bottom: 0.5rem !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -305,7 +351,10 @@ scenario_results = st.session_state.scenario_results
 # Main Content
 # ------------------------------------------------------------------
 with right_col:
-    tab1, tab2 = st.tabs(["Network View", "Analytical Results"])
+    tab_explanation, tab_network, tab_analytical = st.tabs(["Explanation", "Network View", "Analytical Results"])
+    tab1 = tab_network
+    tab2 = tab_analytical
+    tab3 = tab_explanation
 
     # ==================================================================
     # TAB 1: Network View
@@ -465,23 +514,39 @@ with right_col:
                         color={"color": "#b3b3b3", "highlight": "#555"},
                         length=spring_len
                     )
-                
-            tmp_file = ROOT / "dashboard" / "pyvis_graph.html"
-            net.save_graph(str(tmp_file))
             
-            with open(tmp_file, "r", encoding="utf-8") as f:
-                source_code = f.read()
+            source_code = net.generate_html()
             
             # Inject interaction hover config and randomSeed for deterministic layout
             source_code = source_code.replace(
                 '"interaction": {',
                 '"layout": {"randomSeed": 42},\n    "interaction": {\n        "hover": true,\n        "tooltipDelay": 50,'
             )
+
+            # Inject window/load listener to guarantee proper viewport fit (stops zooming in issues on switching tabs)
+            fit_script = """network = new vis.Network(container, data, options);
+            
+            // Re-fit the network after physics stabilized
+            network.once("stabilizationIterationsDone", function() {
+                setTimeout(function() {
+                    network.fit();
+                }, 100);
+            });
+            
+            // Listen for window/iframe load & resize events to guarantee proper viewport fit
+            window.addEventListener("load", function() {
+                setTimeout(function() {
+                    network.fit();
+                }, 200);
+            });
+            window.addEventListener("resize", function() {
+                network.fit();
+            });"""
+            source_code = source_code.replace("network = new vis.Network(container, data, options);", fit_script)
             
             css_injection = """
             <style>
-            #mynetwork { border: none !important; outline: none !important; }
-            .card { border: none !important; background: transparent !important; }
+            .vis-network { outline: none !important; }
             .vis-tooltip {
                 position: absolute;
                 padding: 12px 14px;
@@ -647,3 +712,159 @@ with right_col:
             st.plotly_chart(fig_cat, use_container_width=True)
             
             st.markdown("---")
+
+    # ==================================================================
+    # TAB 3: Explanation
+    # ==================================================================
+    with tab3:
+        # Use columns to create comfortable side margins in pure Streamlit
+        col_l, col_c, col_r = st.columns([1, 4, 1])
+        with col_c:
+            st.markdown("<h2 style='font-weight: 700; margin-top: 0; font-size: 20px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;'>Methodology and Dashboard Guide</h2>", unsafe_allow_html=True)
+            st.markdown("""
+            <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin-bottom: 12px; color: #333;">
+            This interactive platform simulates how financial distress propagates through supply dependencies in the global semiconductor network. It serves as a scenario-analysis tool for stress-testing and systemic risk identification rather than a precise forecasting system.
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.download_button(
+                label="Download Full Project Report",
+                data="Full Project Report Content Placeholder",
+                file_name="semiconductor_risk_report.pdf",
+                mime="application/pdf",
+                disabled=True,
+                help="The comprehensive project report is currently being finalized and will be downloadable soon."
+            )
+            
+            st.markdown("---")
+            
+            st.markdown("<h3 style='font-size: 14.5px; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #111;'>1. Introduction</h3>", unsafe_allow_html=True)
+            st.markdown("""
+            <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #333;">
+            Modern industrial supply networks are highly complex, interdependent systems. In the semiconductor industry, this complexity is magnified by extreme geographic concentration, capital-intensive manufacturing processes, and highly specialized, non-substitutable inputs. A financial disruption at a single firm can quickly ripple outward, causing supply chain bottlenecks, factory shutdowns, and systematic financial contagion across the entire sector.
+            
+            <p style="margin-top: 12px; margin-bottom: 4px; font-weight: 600; color: #222;">What are we trying to explore?</p>
+            <ul style="margin-top: 0px; padding-left: 20px;">
+                <li><b>Vulnerability Mapping</b>: How localized financial distress cascades through the global semiconductor value chain.</li>
+                <li><b>Chokepoint Identification</b>: Which firms serve as critical systemic transmission hubs that amplify propagating stress.</li>
+                <li><b>Scenario Sensitivity</b>: How different types of shocks (idiosyncratic, sector-specific, and systemic) impact overall network stability.</li>
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("<h3 style='font-size: 14.5px; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #111;'>2. Data Collection & Assumptions</h3>", unsafe_allow_html=True)
+            st.markdown("""
+            <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #333;">
+            <p style="margin-top: 0px; margin-bottom: 4px; font-weight: 600; color: #222;">Firm Selection & Financial Health (Z'' Score):</p>
+            <ul style="margin-top: 0px; padding-left: 20px; margin-bottom: 12px;">
+                <li>A representative sample of the world's leading semiconductor firms was selected across various value-chain segments (e.g., EDA tools, equipment, wafer manufacturing, fabless, foundries, OSAT).</li>
+                <li>Financial health is quantified using the Altman Z''-Score formula, customized for emerging markets and non-manufacturing firms.</li>
+                <li>Z''-scores are mapped to a normalized Baseline Stress level between 0.0 (perfect health) and 1.0 (distress) using a logistic mapping function. Low Z''-scores (in the Distress Zone) correspond to high baseline stress.</li>
+            </ul>
+            
+            <p style="margin-top: 8px; margin-bottom: 4px; font-weight: 600; color: #222;">Network Edges & Relationships:</p>
+            <ul style="margin-top: 0px; padding-left: 20px; margin-bottom: 12px;">
+                <li>Dependencies (directed edges) represent documented supplier-customer relationships.</li>
+                <li><b>Directed Flow</b>: An edge points from a supplier to a customer. Financial stress propagates downstream (if a supplier fails, the customer suffers) and upstream (if a major customer faces stress, their purchasing capacity drops, impacting the supplier).</li>
+                <li><b>Relationship Strength</b>: Edge weights are normalized based on transaction importance and substitutability, scaling from 0.1 to 1.0.</li>
+            </ul>
+            
+            <p style="margin-top: 8px; margin-bottom: 4px; font-weight: 600; color: #222;">Key Assumptions:</p>
+            <ol style="margin-top: 0px; padding-left: 20px;">
+                <li><b>No Substitutability</b>: In the short run, firms cannot easily substitute specialized suppliers (e.g., EUV Lithography).</li>
+                <li><b>Linear Transmission</b>: Stress propagates as a linear fraction of dependency strength.</li>
+                <li><b>Static Topology</b>: The supply network structure remains fixed during the propagation period.</li>
+            </ol>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("<h3 style='font-size: 14.5px; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #111;'>3. Deterministic Model & Propagation</h3>", unsafe_allow_html=True)
+            st.markdown("""
+            <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #333;">
+            The propagation engine is a deterministic, iterative network model that simulates the transmission of distress.
+            
+            <p style="margin-top: 12px; margin-bottom: 4px; font-weight: 600; color: #222;">Mathematical Formulation:</p>
+            Let $S_i(t)$ be the stress level of firm $i$ at iteration step $t$. When a shock is introduced, the initial stress rises. In each subsequent step, stress propagates along the network links according to:
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Keep standard LaTeX st.markdown so Streamlit parses and formats math equations perfectly
+            st.markdown("""
+            $$S_j(t+1) = S_j(t) + \\alpha \\sum_{i \\in N(j)} w_{ij} \\cdot S_i(t)$$
+            """)
+            
+            st.markdown("""
+            <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #333;">
+            Where:
+            <ul style="margin-top: 0px; padding-left: 20px; margin-bottom: 12px;">
+                <li>$w_{ij}$ is the normalized dependency weight between firm $i$ and firm $j$.</li>
+                <li>$\\alpha$ is the decay/damping factor (controlling the propagation rate and preventing infinite escalation).</li>
+                <li>$N(j)$ represents the direct neighbors (suppliers/customers) of firm $j$.</li>
+            </ul>
+            
+            <p style="margin-top: 8px; margin-bottom: 4px; font-weight: 600; color: #222;">Key Simplifications:</p>
+            <ul style="margin-top: 0px; padding-left: 20px;">
+                <li>The model does not simulate dynamic market pricing or inventory stockpiles.</li>
+                <li>It focuses strictly on the financial transmission mechanism (credit, liquidity, and operational solvency) over a short-to-medium time horizon.</li>
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("<h3 style='font-size: 14.5px; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #111;'>4. Dashboard Interpretation Guide</h3>", unsafe_allow_html=True)
+            st.markdown("""
+            <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #333;">
+            The interactive network visualization provides an intuitive topological view of financial risk:
+            
+            <ul style="margin-top: 0px; padding-left: 20px;">
+                <li><b>Nodes represent Firms</b>: Hovering over a node displays its name, country, value-chain segment, and stress metrics.</li>
+                <li><b>Edges represent Supply Dependencies</b>: The thickness of the line represents the strength/importance of the relationship.</li>
+                <li><b>Node Color (Stress Level)</b>:
+                    <ul style="margin-top: 4px; padding-left: 20px; margin-bottom: 4px;">
+                        <li><b>Green</b>: Healthy, low-stress ($<0.35$).</li>
+                        <li><b>Yellow/Orange</b>: Moderate risk ($0.35 - 0.70$).</li>
+                        <li><b>Red</b>: Highly distressed / Default-risk ($&gt;0.70$).</li>
+                    </ul>
+                </li>
+                <li><b>Node Size (Systemic Importance)</b>: Nodes are scaled by their total degree centrality (total incoming and outgoing dependency weights), highlighting critical hubs.</li>
+                <li><b>View Modes</b>:
+                    <ul style="margin-top: 4px; padding-left: 20px;">
+                        <li><b>Baseline</b>: The initial, unperturbed state of the network.</li>
+                        <li><b>Impact ($\Delta$ Stress)</b>: Highlights the change in stress caused by the simulation, helping isolate the immediate propagation path.</li>
+                        <li><b>Final</b>: The long-term steady-state stress after propagation.</li>
+                    </ul>
+                </li>
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("<h3 style='font-size: 14.5px; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #111;'>5. Key Insights & Observations</h3>", unsafe_allow_html=True)
+            st.markdown("""
+            <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #333;">
+            Based on scenario testing, several key structural insights emerge:
+            
+            <ul style="margin-top: 0px; padding-left: 20px;">
+                <li><b>Idiosyncratic Shock Transmission</b>: Shocks applied to highly centralized foundries (e.g., TSMC) cause widespread downstream distress across fabless designers and downstream device makers due to their massive structural importance.</li>
+                <li><b>Sector-level Vulnerabilities</b>: Shocking specific manufacturing niches (e.g., Wafer Manufacturing or EUV Lithography) reveals critical single points of failure. Even small sectors can trigger systemic network defaults if they produce highly non-substitutable inputs.</li>
+                <li><b>Systemic Tightening</b>: Broad macro liquidity shocks reveal that firms with high baseline leverage are highly fragile and quickly cross into distress territory even with minimal secondary propagation.</li>
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("<h3 style='font-size: 14.5px; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #111;'>6. Model Limitations</h3>", unsafe_allow_html=True)
+            st.markdown("""
+            <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #333;">
+            While highly valuable for vulnerability mapping, the model has several design limitations:
+            
+            <ul style="margin-top: 0px; padding-left: 20px;">
+                <li><b>Static Nature</b>: In reality, firms will attempt to adapt by sourcing new suppliers or raising capital. The model assumes a fixed, short-term structure with no substitution.</li>
+                <li><b>Data Granularity</b>: Relationships are built on publicly documented B2B transactions. Private or proprietary contracts might not be fully captured.</li>
+                <li><b>Macro Factors</b>: The propagation assumes constant macroeconomic variables (e.g., interest rates, inflation) unless explicitly introduced as part of a systemic shock scenario.</li>
+            </ul>
+            
+            <blockquote style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; border-left: 3px solid #ccc; padding-left: 12px; margin-top: 15px; margin-bottom: 15px; color: #555; background-color: #fafafa; padding-top: 4px; padding-bottom: 4px;">
+            <b>Disclaimer:</b> This dashboard is an academic scenario-analysis tool designed to explore network topology vulnerabilities. It does not constitute investment, credit, or financial advice.
+            </blockquote>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("<br><br>", unsafe_allow_html=True)
