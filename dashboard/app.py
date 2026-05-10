@@ -285,14 +285,14 @@ with left_col:
         if not asml_matches.empty:
             target_id = str(int(float(asml_matches["id"].iloc[0])))
             quick_run = True
-            shock_delta = 0.50
-            alpha_decay = 0.10
+            shock_delta = 0.45
+            alpha_decay = 0.15
     if ex2.button("Silicon Wafer", use_container_width=True):
         scenario_type = "Sector"
         target_sector = "Wafer Manufacturing"
         quick_run = True
-        shock_delta = 0.40
-        alpha_decay = 0.10
+        shock_delta = 0.45
+        alpha_decay = 0.15
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### Controls")
