@@ -270,22 +270,29 @@ with left_col:
         st.rerun()
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### Quick Examples")
+    st.markdown(
+        "<div style='font-size: 11px; color: #555; margin-bottom: 10px; line-height: 1.45; font-family: -apple-system, BlinkMacSystemFont, sans-serif;'>"
+        "<b>1. ASML Lithography (Idiosyncratic)</b>: Stress originates from ASML as a critical lithography bottleneck.<br>"
+        "<b>2. Silicon Wafer (Sector)</b>: Stress is introduced to major wafer suppliers, reflecting a disruption in upstream wafer production."
+        "</div>",
+        unsafe_allow_html=True
+    )
     ex1, ex2 = st.columns(2)
     quick_run = False
-    if ex1.button("TSMC", use_container_width=True):
+    if ex1.button("ASML Lithography", use_container_width=True):
         scenario_type = "Idiosyncratic"
-        tsmc_matches = nodes_df[nodes_df["Company"] == "TSMC"]
-        if not tsmc_matches.empty:
-            target_id = str(int(float(tsmc_matches["id"].iloc[0])))
+        asml_matches = nodes_df[nodes_df["Company"] == "ASML"]
+        if not asml_matches.empty:
+            target_id = str(int(float(asml_matches["id"].iloc[0])))
             quick_run = True
-            shock_delta = 0.5
-            alpha_decay = 0.1
-    if ex2.button("Foundry", use_container_width=True):
+            shock_delta = 0.50
+            alpha_decay = 0.10
+    if ex2.button("Silicon Wafer", use_container_width=True):
         scenario_type = "Sector"
-        target_sector = "Foundry"
+        target_sector = "Wafer Manufacturing"
         quick_run = True
-        shock_delta = 0.4
-        alpha_decay = 0.1
+        shock_delta = 0.40
+        alpha_decay = 0.10
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### Controls")
