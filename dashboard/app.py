@@ -657,7 +657,18 @@ with right_col:
             distressed = sum(1 for v in final_stresses.values() if v > 0.9)
             distress_share = distressed / len(G.nodes)
             
-            c1.metric("Scenario", scenario_results["name"])
+            raw_name = scenario_results.get('name', '')
+            if "Idiosyncratic Shock:" in raw_name:
+                try:
+                    node_id = raw_name.split(": ")[-1].strip()
+                    firm_name = G.nodes[node_id].get("name", node_id) if node_id in G.nodes else node_id
+                    overlay_name = f"Idiosyncratic Shock: {firm_name}"
+                except Exception:
+                    overlay_name = raw_name
+            else:
+                overlay_name = raw_name
+                
+            c1.metric("Scenario", overlay_name)
             c2.metric("Propagation Rounds", scenario_results["rounds"])
             c3.metric("Avg Final Stress", f"{avg_final:.3f}", delta=f"{avg_final - avg_base:+.3f}", delta_color="inverse")
             c4.metric("Distressed Firms (>0.9)", f"{distressed} ({distress_share:.1%})")
