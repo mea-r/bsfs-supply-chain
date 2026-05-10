@@ -270,29 +270,22 @@ with left_col:
         st.rerun()
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### Quick Examples")
-    st.markdown(
-        "<div style='font-size: 11px; color: #555; margin-bottom: 10px; line-height: 1.45; font-family: -apple-system, BlinkMacSystemFont, sans-serif;'>"
-        "<b>1. ASML Lithography (Idiosyncratic)</b>: Stress originates from ASML as a critical lithography bottleneck.<br>"
-        "<b>2. Silicon Wafer (Sector)</b>: Stress is introduced to major wafer suppliers, reflecting a disruption in upstream wafer production."
-        "</div>",
-        unsafe_allow_html=True
-    )
     ex1, ex2 = st.columns(2)
     quick_run = False
-    if ex1.button("ASML Lithography", use_container_width=True):
+    if ex1.button("TSMC", use_container_width=True):
         scenario_type = "Idiosyncratic"
-        asml_matches = nodes_df[nodes_df["Company"] == "ASML"]
-        if not asml_matches.empty:
-            target_id = str(int(float(asml_matches["id"].iloc[0])))
+        tsmc_matches = nodes_df[nodes_df["Company"] == "TSMC"]
+        if not tsmc_matches.empty:
+            target_id = str(int(float(tsmc_matches["id"].iloc[0])))
             quick_run = True
-            shock_delta = 0.45
-            alpha_decay = 0.15
-    if ex2.button("Silicon Wafer", use_container_width=True):
+            shock_delta = 0.5
+            alpha_decay = 0.1
+    if ex2.button("Foundry", use_container_width=True):
         scenario_type = "Sector"
-        target_sector = "Wafer Manufacturing"
+        target_sector = "Foundry"
         quick_run = True
-        shock_delta = 0.45
-        alpha_decay = 0.15
+        shock_delta = 0.4
+        alpha_decay = 0.1
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### Controls")
@@ -724,15 +717,10 @@ with right_col:
     # TAB 3: Explanation
     # ==================================================================
     with tab3:
-        # Use columns to create comfortable side margins in pure Streamlit
-        col_l, col_c, col_r = st.columns([1, 4, 1])
+        # Left-aligned layout with broad right-side padding gutter
+        col_c, col_r = st.columns([2, 1])
         with col_c:
             st.markdown("<h2 style='font-weight: 700; margin-top: 0; font-size: 20px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;'>Methodology and Dashboard Guide</h2>", unsafe_allow_html=True)
-            st.markdown("""
-            <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin-bottom: 12px; color: #333;">
-            This interactive platform simulates how financial distress propagates through supply dependencies in the global semiconductor network. It serves as a scenario-analysis tool for stress-testing and systemic risk identification rather than a precise forecasting system.
-            </div>
-            """, unsafe_allow_html=True)
             
             st.download_button(
                 label="Download Full Project Report",
@@ -745,132 +733,37 @@ with right_col:
             
             st.markdown("---")
             
-            st.markdown("<h3 style='font-size: 14.5px; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #111;'>1. Introduction</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='font-size: 14.5px; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #111;'>Abstract</h3>", unsafe_allow_html=True)
             st.markdown("""
-            <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #333;">
-            Modern industrial supply networks are highly complex, interdependent systems. In the semiconductor industry, this complexity is magnified by extreme geographic concentration, capital-intensive manufacturing processes, and highly specialized, non-substitutable inputs. A financial disruption at a single firm can quickly ripple outward, causing supply chain bottlenecks, factory shutdowns, and systematic financial contagion across the entire sector.
-            
-            <p style="margin-top: 12px; margin-bottom: 4px; font-weight: 600; color: #222;">What are we trying to explore?</p>
-            <ul style="margin-top: 0px; padding-left: 20px;">
-                <li><b>Vulnerability Mapping</b>: How localized financial distress cascades through the global semiconductor value chain.</li>
-                <li><b>Chokepoint Identification</b>: Which firms serve as critical systemic transmission hubs that amplify propagating stress.</li>
-                <li><b>Scenario Sensitivity</b>: How different types of shocks (idiosyncratic, sector-specific, and systemic) impact overall network stability.</li>
-            </ul>
+            <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #333; text-align: justify; background-color: #fafafa; border-left: 3px solid #0073e6; padding: 12px 16px; border-radius: 4px; margin-bottom: 20px;">
+            This project develops a network-based model of financial stress propagation in the semiconductor supply chain. Firm-level financial stress is measured using the Altman Z’’-Score, while supply-chain relationships are represented as a directed weighted network of firms across key value-chain segments within the semiconductor industry. The model simulates how a financial shock at one firm or group of firms can spread through firm relationships, with propagation being determined by the relationship strength, firm centrality, and firm vulnerability/stress. Results are presented through an interactive dashboard that allows users to test and trigger shock scenarios, observing changes in firm stress. The analysis shows that financial risk in semiconductor supply chains cannot be assessed only at the individual level, as network position plays an important role in determining how stress spreads.
             </div>
             """, unsafe_allow_html=True)
             
-            st.markdown("<h3 style='font-size: 14.5px; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #111;'>2. Data Collection & Assumptions</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='font-size: 14.5px; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #111;'>Dashboard Interpretation</h3>", unsafe_allow_html=True)
             st.markdown("""
             <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #333;">
-            <p style="margin-top: 0px; margin-bottom: 4px; font-weight: 600; color: #222;">Firm Selection & Financial Health (Z'' Score):</p>
-            <ul style="margin-top: 0px; padding-left: 20px; margin-bottom: 12px;">
-                <li>A representative sample of the world's leading semiconductor firms was selected across various value-chain segments (e.g., EDA tools, equipment, wafer manufacturing, fabless, foundries, OSAT).</li>
-                <li>Financial health is quantified using the Altman Z''-Score formula, customized for emerging markets and non-manufacturing firms.</li>
-                <li>Z''-scores are mapped to a normalized Baseline Stress level between 0.0 (perfect health) and 1.0 (distress) using a logistic mapping function. Low Z''-scores (in the Distress Zone) correspond to high baseline stress.</li>
-            </ul>
-            
-            <p style="margin-top: 8px; margin-bottom: 4px; font-weight: 600; color: #222;">Network Edges & Relationships:</p>
-            <ul style="margin-top: 0px; padding-left: 20px; margin-bottom: 12px;">
-                <li>Dependencies (directed edges) represent documented supplier-customer relationships.</li>
-                <li><b>Directed Flow</b>: An edge points from a supplier to a customer. Financial stress propagates downstream (if a supplier fails, the customer suffers) and upstream (if a major customer faces stress, their purchasing capacity drops, impacting the supplier).</li>
-                <li><b>Relationship Strength</b>: Edge weights are normalized based on transaction importance and substitutability, scaling from 0.1 to 1.0.</li>
-            </ul>
-            
-            <p style="margin-top: 8px; margin-bottom: 4px; font-weight: 600; color: #222;">Key Assumptions:</p>
-            <ol style="margin-top: 0px; padding-left: 20px;">
-                <li><b>No Substitutability</b>: In the short run, firms cannot easily substitute specialized suppliers (e.g., EUV Lithography).</li>
-                <li><b>Linear Transmission</b>: Stress propagates as a linear fraction of dependency strength.</li>
-                <li><b>Static Topology</b>: The supply network structure remains fixed during the propagation period.</li>
-            </ol>
+            The dashboard translates the model outputs into an interactive network view, allowing users to observe how financial stress spreads through firm relationships. It supports the project’s objective of simulating stress propagation across supply chains and analyzing these dynamics to identify systemic risk.
             </div>
             """, unsafe_allow_html=True)
             
-            st.markdown("<h3 style='font-size: 14.5px; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #111;'>3. Deterministic Model & Propagation</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='font-size: 14.5px; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #111;'>Network Visualization</h3>", unsafe_allow_html=True)
             st.markdown("""
             <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #333;">
-            The propagation engine is a deterministic, iterative network model that simulates the transmission of distress.
-            
-            <p style="margin-top: 12px; margin-bottom: 4px; font-weight: 600; color: #222;">Mathematical Formulation:</p>
-            Let $S_i(t)$ be the stress level of firm $i$ at iteration step $t$. When a shock is introduced, the initial stress rises. In each subsequent step, stress propagates along the network links according to:
+            In the network graph, each node represents a firm, while each edge represents a relationship between firms. Edge thickness reflects the strength or importance of the relationship: thicker links indicate stronger dependencies. Hovering over a node displays firm-specific information, including the firm name, value-chain segment, and stress levels.
+            <br><br>
+            The dashboard includes three main view modes. The <b>Baseline view</b> shows the initial, unshocked state of the network and serves as the reference point for comparison. In this view, firm stress levels are derived from the Altman Z’’-Score. The <b>Impact view</b> shows the change in stress caused by the simulation, highlighting the firms most affected by the shock rather than those with the highest absolute stress. The <b>Final view</b> shows firm stress levels after the propagation process has completed. Together, these views distinguish between the initial condition, the marginal effect of the shock, and the final risk outcome.
+            <br><br>
+            Node color represents financial stress. In the Baseline and Final views, a green-to-red gradient is used, with green representing the least stressed firms and red representing the most stressed firms. In the Impact view, stress changes are shown using a gray-to-red gradient, where gray represents little or no change and red represents a large increase in stress.
             </div>
             """, unsafe_allow_html=True)
             
-            # Keep standard LaTeX st.markdown so Streamlit parses and formats math equations perfectly
-            st.markdown("""
-            $$S_j(t+1) = S_j(t) + \\alpha \\sum_{i \\in N(j)} w_{ij} \\cdot S_i(t)$$
-            """)
-            
+            st.markdown("<h3 style='font-size: 14.5px; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #111;'>Scenario Controls and Outputs</h3>", unsafe_allow_html=True)
             st.markdown("""
             <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #333;">
-            Where:
-            <ul style="margin-top: 0px; padding-left: 20px; margin-bottom: 12px;">
-                <li>$w_{ij}$ is the normalized dependency weight between firm $i$ and firm $j$.</li>
-                <li>$\\alpha$ is the decay/damping factor (controlling the propagation rate and preventing infinite escalation).</li>
-                <li>$N(j)$ represents the direct neighbors (suppliers/customers) of firm $j$.</li>
-            </ul>
-            
-            <p style="margin-top: 8px; margin-bottom: 4px; font-weight: 600; color: #222;">Key Simplifications:</p>
-            <ul style="margin-top: 0px; padding-left: 20px;">
-                <li>The model does not simulate dynamic market pricing or inventory stockpiles.</li>
-                <li>It focuses strictly on the financial transmission mechanism (credit, liquidity, and operational solvency) over a short-to-medium time horizon.</li>
-            </ul>
-            </div>
-            """, unsafe_allow_html=True)
-
-            st.markdown("<h3 style='font-size: 14.5px; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #111;'>4. Dashboard Interpretation Guide</h3>", unsafe_allow_html=True)
-            st.markdown("""
-            <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #333;">
-            The interactive network visualization provides an intuitive topological view of financial risk:
-            
-            <ul style="margin-top: 0px; padding-left: 20px;">
-                <li><b>Nodes represent Firms</b>: Hovering over a node displays its name, country, value-chain segment, and stress metrics.</li>
-                <li><b>Edges represent Supply Dependencies</b>: The thickness of the line represents the strength/importance of the relationship.</li>
-                <li><b>Node Color (Stress Level)</b>:
-                    <ul style="margin-top: 4px; padding-left: 20px; margin-bottom: 4px;">
-                        <li><b>Green</b>: Healthy, low-stress ($<0.35$).</li>
-                        <li><b>Yellow/Orange</b>: Moderate risk ($0.35 - 0.70$).</li>
-                        <li><b>Red</b>: Highly distressed / Default-risk ($&gt;0.70$).</li>
-                    </ul>
-                </li>
-                <li><b>Node Size (Systemic Importance)</b>: Nodes are scaled by their total degree centrality (total incoming and outgoing dependency weights), highlighting critical hubs.</li>
-                <li><b>View Modes</b>:
-                    <ul style="margin-top: 4px; padding-left: 20px;">
-                        <li><b>Baseline</b>: The initial, unperturbed state of the network.</li>
-                        <li><b>Impact ($\Delta$ Stress)</b>: Highlights the change in stress caused by the simulation, helping isolate the immediate propagation path.</li>
-                        <li><b>Final</b>: The long-term steady-state stress after propagation.</li>
-                    </ul>
-                </li>
-            </ul>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown("<h3 style='font-size: 14.5px; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #111;'>5. Key Insights & Observations</h3>", unsafe_allow_html=True)
-            st.markdown("""
-            <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #333;">
-            Based on scenario testing, several key structural insights emerge:
-            
-            <ul style="margin-top: 0px; padding-left: 20px;">
-                <li><b>Idiosyncratic Shock Transmission</b>: Shocks applied to highly centralized foundries (e.g., TSMC) cause widespread downstream distress across fabless designers and downstream device makers due to their massive structural importance.</li>
-                <li><b>Sector-level Vulnerabilities</b>: Shocking specific manufacturing niches (e.g., Wafer Manufacturing or EUV Lithography) reveals critical single points of failure. Even small sectors can trigger systemic network defaults if they produce highly non-substitutable inputs.</li>
-                <li><b>Systemic Tightening</b>: Broad macro liquidity shocks reveal that firms with high baseline leverage are highly fragile and quickly cross into distress territory even with minimal secondary propagation.</li>
-            </ul>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown("<h3 style='font-size: 14.5px; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #111;'>6. Model Limitations</h3>", unsafe_allow_html=True)
-            st.markdown("""
-            <div style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #333;">
-            While highly valuable for vulnerability mapping, the model has several design limitations:
-            
-            <ul style="margin-top: 0px; padding-left: 20px;">
-                <li><b>Static Nature</b>: In reality, firms will attempt to adapt by sourcing new suppliers or raising capital. The model assumes a fixed, short-term structure with no substitution.</li>
-                <li><b>Data Granularity</b>: Relationships are built on publicly documented B2B transactions. Private or proprietary contracts might not be fully captured.</li>
-                <li><b>Macro Factors</b>: The propagation assumes constant macroeconomic variables (e.g., interest rates, inflation) unless explicitly introduced as part of a systemic shock scenario.</li>
-            </ul>
-            
-            <blockquote style="font-size: 12.5px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, sans-serif; border-left: 3px solid #ccc; padding-left: 12px; margin-top: 15px; margin-bottom: 15px; color: #555; background-color: #fafafa; padding-top: 4px; padding-bottom: 4px;">
-            <b>Disclaimer:</b> This dashboard is an academic scenario-analysis tool designed to explore network topology vulnerabilities. It does not constitute investment, credit, or financial advice.
-            </blockquote>
+            The control panel allows users to select the shock type, target firm or sector, shock magnitude, and propagation parameter alpha. Magnitude determines the severity of the initial shock, while alpha controls how strongly stress is transmitted through the network. Running a simulation updates both the network and the associated analytical views.
+            <br><br>
+            The analytical results tab summarizes each scenario using indicators such as the number of propagation rounds, average final stress, average stress increase, and number of distressed firms. Additional charts rank firms by largest stress increase and systemic importance.
             </div>
             """, unsafe_allow_html=True)
             
