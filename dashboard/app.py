@@ -742,14 +742,26 @@ with right_col:
         with col_c:
             st.markdown("<h2 style='font-weight: 700; margin-top: 0; font-size: 20px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;'>Methodology and Dashboard Guide</h2>", unsafe_allow_html=True)
             
-            st.download_button(
-                label="Download Full Project Report",
-                data="Full Project Report Content Placeholder",
-                file_name="semiconductor_risk_report.pdf",
-                mime="application/pdf",
-                disabled=True,
-                help="The comprehensive project report is currently being finalized and will be downloadable soon."
-            )
+            pdf_path = ROOT / "Financial Stress Propagation in Semiconductor Supply Networks, A Network-Based Modeling Approach.pdf"
+            if pdf_path.exists():
+                with open(pdf_path, "rb") as pdf_file:
+                    pdf_data = pdf_file.read()
+                st.download_button(
+                    label="Download Full Project Report",
+                    data=pdf_data,
+                    file_name="Financial Stress Propagation in Semiconductor Supply Networks, A Network-Based Modeling Approach.pdf",
+                    mime="application/pdf",
+                    help="Click to download the comprehensive project report."
+                )
+            else:
+                st.download_button(
+                    label="Download Full Project Report",
+                    data="Full Project Report Content Placeholder",
+                    file_name="semiconductor_risk_report.pdf",
+                    mime="application/pdf",
+                    disabled=True,
+                    help="The comprehensive project report is not found."
+                )
             
             st.markdown("---")
             
